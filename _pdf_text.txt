@@ -1,0 +1,166 @@
+Input:
+Luồng dữ liệu giao dịch , mỗi giao dịch  có mã định danh 
+và chứa các cặp (mục, số lượng).
+Hệ số suy giảm , với .
+Ngưỡng hiệu suất trung bình tối thiểu .
+Bảng chi phí đầu tư đơn vị (investmentTable) và ngoại tiện ích của từng mục.
+Output:
+Tập các tập mục có hiệu suất trung bình cao theo mô hình suy giảm, ký hiệu  (hay
+) — là những tập mục  thỏa .
+Mục tiêu chung: với mỗi giao dịch mới đến, cập nhật cấu trúc lưu trữ và trả về (hoặc cập nhật)
+tập kết quả mà không cần quét lại toàn bộ luồng dữ liệu gốc.
+Bảng 1 — Luồng dữ liệu giao dịch:
+Tid Transaction (item, qty) Utility (mỗi item) TU
+1 (a,1),(c,1),(d,2),(f,1) (4,5,4,2) 15
+2 (a,1),(b,2),(c,2),(d,5),(e,2),(f,6) (4,6,10,10,8,12) 50
+3 (a,1),(b,2),(c,5),(e,1) (4,6,25,4) 39
+4 (b,4),(c,2),(d,4),(e,1) (12,10,8,4) 34
+5 (b,2),(c,3),(d,2),(e,1),(f,1) (6,15,4,4,2) 31
+6 (a,3),(b,4),(c,2),(d,1) (12,12,10,2) 36
+7 (a,1),(b,1),(c,2),(d,3),(f,2) (4,3,10,6,4) 27
+8 (a,1),(b,2),(c,1),(d,1),(e,2) (4,6,5,2,8) 25
+Bảng 2 — Chi phí đơn vị  và chi phí đầu tư đơn vị :
+Mục a b c d e f
+cu(i) 12 3 4 9 13 5
+inv(i) 96 51 72 162 91 50
+Tổng hợp luồng xử lý thuật toán HAEIM_Damped
+1. Input / Output tổng thể
+2. Dữ liệu minh họa dùng xuyên suốt các ví dụ
+Trong các ví dụ, tham số cố định là: hệ số suy giảm , mã giao dịch mới nhất ,
+ngưỡng .
+DAE-List lưu đồng thời thông tin ở cấp cửa sổ (toàn cục) và cấp giao dịch, phục vụ ba pha xử lý.
+Thuộc tính Ý nghĩa
+Sdae Tổng hiệu suất trung bình suy giảm của tập mục trên toàn luồng
+Inv Tổng chi phí đầu tư của tập mục
+PI Chi phí đầu tư của tiền tố chung (dùng khi ghép hai DAE-List)
+SMDAEUB Tổng cận trên MDAEUB — dùng lọc ở pha Restructure
+STDAEUB Tổng cận trên TDAEUB (thuộc tính mới) — dùng cắt tỉa ở pha Expansion
+Thuộc tính Ý nghĩa
+u Tiện ích của tập mục trong giao dịch đó
+maxru Tiện ích còn lại lớn nhất (maxRU) trong giao dịch
+minInv Chi phí đầu tư nhỏ nhất còn lại trong giao dịch
+PU Tiện ích của tiền tố chung (dùng khi ghép)
+dae Hiệu suất trung bình suy giảm của tập mục trong giao dịch này
+MDAEUB Cận trên suy giảm cực đại (tính từ MAEUB thô nhân trọng số suy giảm)
+k Số lượng mục còn lại phía sau tập mục trong giao dịch
+Lưu ý quan trọng: ở pha Construction, các trường dae/MDAEUB ở cấp giao dịch được lưu dưới
+dạng thông tin thô (ae, MAEUB) — chưa áp dụng hệ số suy giảm. Hệ số suy giảm chỉ được áp dụng
+tại pha Restructure, vì trọng số suy giảm phụ thuộc vào Ltid — con số này thay đổi liên tục mỗi
+khi có giao dịch mới, nên không thể tính cố định ngay từ đầu.
+Khi nào chạy: mỗi khi có một giao dịch mới  được quét vào luồng.
+Việc thực hiện:
+1. Duyệt từng mục  trong  theo thứ tự toàn phần đã định.
+3. Cấu trúc dữ liệu DAE-List
+Cấp cửa sổ (mỗi node DAE-List, ứng với 1 tập mục)
+Cấp giao dịch (mỗi entry trong node, ứng với 1 giao dịch chứa tập mục đó)
+4. Luồng xử lý — 3 pha
+Pha 1: Construction (Khởi tạo)
+2. Tính tiện ích  và chi phí đầu tư .
+3. Nếu node của mục  chưa tồn tại trong DAE-List toàn cục → tạo node mới, khởi tạo Sdae,
+SMDAEUB, STDAEUB = 0.
+4. Thêm entry mới vào node: lưu tid, u, hiệu suất trung bình thô ae (Công thức 5).
+5. Tính cận trên MAEUB của mục  bằng chiến lược duyệt tham lam (giảm dần theo tiện ích) —
+lưu ở dạng thô, chưa nhân hệ số suy giảm.
+6. Các trường maxru, k chưa được xác định ở pha này (phụ thuộc thứ tự sắp xếp sau pha
+Restructure).
+Đặc điểm: chi phí thấp, chỉ tỷ lệ với kích thước giao dịch mới, không cần quét lại dữ liệu cũ —
+phù hợp xử lý luồng liên tục.
+Dữ liệu: , , .
+Tính MAEUB({a}, T1): Sắp xếp  giảm dần theo tiện ích: .
+Vì , mở rộng thêm :  →
+nhỏ hơn , nên  vẫn là 0.0417.
+Mục kế tiếp  có  → điều kiện dừng thỏa mãn, dừng mở rộng.
+Entry lưu: tid=1, u=4, ae=0.0417, MAEUB=0.0417, minInv=0 (maxru, k chưa xác định).
+Khi nào chạy: sau khi DAE-List toàn cục đã được cập nhật từ các giao dịch mới.
+Việc thực hiện:
+1. Áp dụng hệ số suy giảm cho từng entry:
+, cộng dồn thành .
+2. Lọc sớm: nếu  → loại bỏ mục , không đưa vào pha mở rộng.
+3. Các DAE-List còn lại được sắp xếp tăng dần theo  — thứ tự này dùng cho pha
+Expansion.
+4. Duyệt ngược danh sách (từ cuối về đầu) để tính , maxru, minInv, k, và cận trên TDAEUB
+(theo 3 trường hợp), cộng dồn thành .
+Ví dụ 1 — Tạo DAE-List và tính giá trị thô (mục , giao dịch )
+Pha 2: Restructure (Tái cấu trúc)
+Với , : trọng số của  là .
+Sau khi duyệt toàn bộ entry, giả sử thu được bảng tổng :
+Mục a b c d e f
+SMDAEUB 0.206 0.544 0.598 0.129 0.193 0.171
+Với : chỉ a, b, c thỏa  → giữ lại làm ứng viên. Thứ tự sau sắp
+xếp tăng dần: .
+Với mục : , .
+Các giá trị còn lại: , , .
+Tương tự: , .
+Dữ liệu entry của  trong :  = , ,
+. .
+Giao dịch : . Vì  → dùng trường hợp 1 của TDAEUB:
+Giao dịch : ,  → trường hợp 1, , trọng số :
+Giao dịch : ,  → trường hợp 1, , trọng số :
+Tổng toàn bộ DAE-List của : .
+Ví dụ 2 — Tính MDAEUB và sắp xếp DAE-List
+Ví dụ 3 — Tính tổng hiệu suất trung bình suy giảm 
+Ví dụ 4 — Tính TDAEUB và STDAEUB (mục )
+Các tổng sau pha Restructure: , ,
+.
+Với : chỉ b thỏa  → chỉ  được tiếp tục mở rộng ở pha 3;  và 
+không còn khả năng mở rộng.
+Khi nào chạy: ngay sau pha Restructure, trên các DAE-List đã được lọc và sắp xếp.
+Việc thực hiện (chiến lược duyệt theo chiều sâu — DFS, gọi đệ quy):
+1. Với mỗi DAE-List : kiểm tra ? → nếu đúng, đưa  vào tập kết quả
+.
+2. Kiểm tra ? → nếu sai, cắt tỉa toàn bộ nhánh mở rộng từ  (dừng đệ
+quy tại đây). Nếu đúng, tiếp tục ghép  với các DAE-List đứng sau nó trong thứ tự đã sắp
+xếp.
+3. Ghép hai DAE-List  và  (cùng tiền tố) để tạo pattern mới :
+Duyệt đồng thời hai tidList bằng hai con trỏ; khi trùng tid, tạo entry mới, tính dae
+cộng vào , và tính TDAEUB cộng vào .
+Dùng cận trên cục bộ LTDAEUB (khởi tạo từ , trừ dần đóng góp của giao
+dịch không đồng xuất hiện) để dừng sớm phép ghép nếu phát hiện không còn triển
+vọng.
+4. Gọi đệ quy để tiếp tục sinh các pattern dài hơn từ các DAE-List điều kiện vừa tạo.
+Từ Ví dụ 3–4:  (< 0.2, loại),  (≥0.2, giữ), 
+(≥0.2, giữ).
+ → cắt tỉa nhánh .  → không mở
+rộng . Chỉ  → ghép  với .
+Tính : không có tiền tố chung ( ):
+Giao dịch đồng xuất hiện của  và : .
+Tiện ích : tại  = ; các giá trị tại  đến  lần lượt
+là 31, 22, 21, 22, 13, 11.
+Với , , :
+đ ư ợ ê à ế ả
+Pha 3: Expansion (Mở rộng)
+Ví dụ 5 — Khai thác và mở rộng (ghép {b} với {c})
+ khởi tạo bằng ; vì mọi giao dịch chứa  đều
+chứa , không có đóng góp nào bị trừ. Không còn mục nào sau  → 
+(không thể mở rộng tiếp).
+Kết quả cuối với :
+Tập mục Sdae Kết luận
+{a} 0.188 Không phải HAEI (< minae)
+{b} 0.542 HAEI
+{c} 0.598 HAEI (nhưng không mở rộng được, STDAEUB=0)
+{b,c} 0.2047 HAEI
+→ Tập kết quả .
+Giao dịch m ớ i T_j đế n
+        │
+        ▼
+┌───────────────────┐
+│   PHA CONSTRUCTION  │   Ghi nhậ n u, inv, ae thô, MAEUB thô
+│   (mỗ i khi có T_j)  │   vào entry cấ p giao dịch c ủ a DAE-List
+└─────────┬─────────┘
+          ▼
+┌───────────────────┐
+│   PHA RESTRUCTURE   │   Áp f^(Ltid-tid) → MDAEUB, SMDAEUB
+│   (định kỳ khai thác) │   Lọc theo SMDAEUB < minae → loại
+│                     │   Sắ p xế p tăng dầ n SMDAEUB
+│                     │   Tính Sdae, TDAEUB, STDAEUB
+└─────────┬─────────┘
+          ▼
+┌───────────────────┐
+│    PHA EXPANSION    │   Sdae(P) ≥ minae? → thêm vào kế t qu ả
+│   (DFS đệ  quy)      │   STDAEUB(P) ≥ minae? → ghép tiế p, dùng
+│                     │   LTDAEUB đ ể  d ừ ng s ớ m phép ghép không tri ể n vọng
+└─────────┬─────────┘
+          ▼
+   Tậ p kế t qu ả  DHAEIs
+   (ch ờ  giao dịch m ớ i tiế p theo)
+5. Sơ đồ tổng quan luồng xử lý

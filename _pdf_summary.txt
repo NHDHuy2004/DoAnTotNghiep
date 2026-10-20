@@ -1,0 +1,75 @@
+Hãy tưởng tượng bạn quản lý một cửa hàng tiện lợi. Mỗi ngày có hàng trăm hóa đơn (giao dịch)
+được ghi lại: khách mua gì, mua bao nhiều, sản phẩm đó lãi bao nhiêu, chi phí nhập hàng bao
+nhiêu. Câu hỏi bạn muốn trả lời là: "Tổ hợp sản phẩm nào đang thực sự sinh lời cao, tính luôn
+cả chi phí, và ưu tiên những tổ hợp mới nổi gần đây thay vì những gì đã lỗi thời từ lâu?"
+HAEIM_Damped là một thuật toán giúp máy tính tự động tìm ra câu trả lời đó — trong điều kiện
+hóa đơn cứ liên tục đổ về mỗi ngày, mỗi giờ, không bao giờ dừng lại (gọi là "luồng dữ liệu").
+Thuật toán cần 3 thứ:
+1. Luồng dữ liệu giao dịch: danh sách các hóa đơn liên tục đổ về, mỗi hóa đơn gồm những sản
+phẩm nào được mua và số lượng bao nhiêu. Đây là dòng dữ liệu "sống" — không có điểm kết
+thúc cố định.
+2. Hệ số suy giảm (f ): một con số từ 0 đến 1, dùng để quyết định "trí nhớ" của thuật toán dài
+hay ngắn. Nếu f gần 1, thuật toán vẫn còn nhớ khá rõ các hóa đơn cũ. Nếu f nhỏ hơn, các
+hóa đơn cũ sẽ nhanh chóng bị "quên dần" — giống như con người dần quên chuyện cũ theo
+thời gian, không quên đột ngột mà quên từ từ.
+3. Ngưỡng tối thiểu (minae): một mức điểm chuẩn để xác định tổ hợp sản phẩm nào được coi
+là "đủ tốt để báo cáo". Tổ hợp nào đạt điểm hiệu quả bằng hoặc cao hơn ngưỡng này thì
+được giữ lại làm kết quả.
+Kết quả là một danh sách các tổ hợp sản phẩm "đáng chú ý" — những tổ hợp mà khi tính đến cả
+lợi nhuận, chi phí nhập hàng, và mức độ ưu tiên dữ liệu gần đây, đều cho ra điểm số hiệu quả
+cao hơn ngưỡng đã đặt ra.
+Ví dụ đầu ra có thể là: "Tổ hợp {bánh mì, sữa} đang có điểm hiệu quả 0.35, vượt ngưỡng 0.2 → đây là
+tổ hợp đáng quan tâm." Danh sách này được cập nhật liên tục mỗi khi có hóa đơn mới đổ về,
+không cần tính lại từ đầu.
+HAEIM_Damped — Giải thích dễ hiểu (dành cho
+người không chuyên)
+Thuật toán này để làm gì?
+Input (đầu vào) — thuật toán cần gì để bắt đầu?
+Output (đầu ra) — thuật toán trả lại gì?
+Thuật toán xử lý qua 3 bước tuần hoàn — giống như một quy trình lặp lại mỗi khi có dữ liệu
+mới.
+Ý tưởng đơn giản: mỗi khi có hóa đơn mới, thuật toán đọc qua hóa đơn đó và ghi chú lại thông
+tin cho từng sản phẩm xuất hiện trong hóa đơn — lãi bao nhiêu, chi phí bao nhiêu, đây là hóa
+đơn thứ mấy.
+Nó giống như việc bạn có một cuốn sổ tay, và mỗi khi có hóa đơn mới, bạn chỉ cần thêm một
+dòng ghi chú mới vào đúng trang của sản phẩm đó — không cần viết lại toàn bộ cuốn sổ. Nhờ
+vậy, giai đoạn này rất nhanh và nhẹ, không bị "nghẽn" dù dữ liệu đổ về liên tục.
+Điểm quan trọng: ở giai đoạn này, thuật toán chưa áp dụng yếu tố "quên dần theo thời gian" — nó
+chỉ ghi nhận thông tin thô trước, để dành việc tính "độ quên" cho giai đoạn sau.
+Đây là lúc thuật toán nhìn lại toàn bộ cuốn sổ tay và làm hai việc:
+1. Áp dụng "độ quên": với mỗi ghi chú, thuật toán tính xem hóa đơn đó cũ đến mức nào so với
+hóa đơn mới nhất, rồi giảm bớt "trọng lượng" của nó theo hệ số suy giảm đã đặt ra ban đầu.
+Hóa đơn hôm nay có trọng lượng đầy đủ; hóa đơn tuần trước có trọng lượng thấp hơn một
+chút; hóa đơn tháng trước có trọng lượng thấp hơn nữa — nhưng không bao giờ bị xóa hẳn.
+2. Lọc bỏ sản phẩm không có tiềm năng: những sản phẩm mà kể cả khi tính hết khả năng tốt
+nhất vẫn không thể đạt ngưỡng yêu cầu, sẽ bị loại ngay từ đây — không cần xử lý tiếp cho
+tốn công.
+Việc lọc sớm này giống như việc bạn dọn bớt những trang sổ tay ghi về các sản phẩm chắc chắn
+"không có cửa" đạt yêu cầu, để chỉ tập trung công sức vào những sản phẩm còn triển vọng.
+Sau khi đã lọc và sắp xếp lại, thuật toán bắt đầu ghép các sản phẩm với nhau để tạo ra các tổ
+hợp lớn hơn — ví dụ từ sản phẩm đơn lẻ "bánh mì" và "sữa", ghép thành tổ hợp "bánh mì + sữa",
+rồi tiếp tục ghép thêm để ra tổ hợp ba sản phẩm, bốn sản phẩm, v.v.
+Với mỗi tổ hợp được tạo ra, thuật toán kiểm tra:
+Nếu điểm hiệu quả thực tế của tổ hợp đó đã đạt ngưỡng → đưa vào danh sách kết quả.
+Nếu tổ hợp đó, dù mở rộng thêm nữa cũng không còn khả năng đạt ngưỡng → dừng lại,
+không mở rộng tiếp nhánh đó nữa, để tiết kiệm thời gian tính toán.
+Quá trình này lặp lại đệ quy — nghĩa là tổ hợp hai sản phẩm có triển vọng sẽ được ghép tiếp
+thành tổ hợp ba, bốn sản phẩm, cho đến khi không còn gì để mở rộng nữa.
+Ba giai đoạn hoạt động của thuật toán
+Giai đoạn 1 — Ghi nhận (Construction)
+Giai đoạn 2 — Sắp xếp lại và lọc bớt (Restructure)
+Giai đoạn 3 — Ghép tổ hợp và mở rộng (Expansion)
+HAEIM_Damped hoạt động như một người quản lý cửa hàng thông minh: ghi chú mọi
+hóa đơn mới ngay khi nó đến (giai đoạn 1), định kỳ nhìn lại và giảm dần độ quan trọng
+của các ghi chú cũ trong khi loại bỏ những gì rõ ràng không có triển vọng (giai đoạn 2),
+rồi ghép các sản phẩm còn triển vọng lại với nhau để tìm ra những tổ hợp sinh lời cao
+nhất (giai đoạn 3) — tất cả diễn ra liên tục, không cần dừng lại để tính toán lại từ đầu
+mỗi khi có hóa đơn mới.
+Cách cũ (HAEIM_Stream) giống như một người chỉ nhớ đúng "N ngày gần nhất" — hóa đơn ngày
+N+1 xuất hiện thì hóa đơn ngày đầu tiên bị quên sạch ngay lập tức, dù nó vẫn còn hữu ích một
+phần.
+HAEIM_Damped giống một người có trí nhớ tự nhiên hơn: nhớ rõ chuyện gần đây, nhớ mờ dần
+chuyện xa hơn, chứ không quên đột ngột. Nhờ vậy, thuật toán nắm bắt xu hướng thay đổi của
+thị trường (ví dụ: sản phẩm nào đang "nổi lên" gần đây) chính xác hơn.
+Tóm gọn lại bằng một câu
+Vì sao cách làm này thông minh hơn cách cũ?
