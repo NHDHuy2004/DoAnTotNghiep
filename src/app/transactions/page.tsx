@@ -2,12 +2,14 @@
 
 import { useAsync } from "@/hooks/useAsync";
 import { DemoBanner, PageHeader } from "@/components/shared/PageHeader";
-import { Button, Input, Select } from "@/components/ui/Controls";
+import { Badge } from "@/components/ui/Badge";
+import { Button, Input, SearchField, Select, Textarea } from "@/components/ui/Controls";
 import { Card } from "@/components/ui/Card";
 import { DataTable, Pagination, type Column } from "@/components/ui/DataTable";
-import { Dialog } from "@/components/ui/Dialog";
-import { Badge } from "@/components/ui/Badge";
-import { ErrorState, LoadingState } from "@/components/ui/States";
+import { Dialog, Drawer } from "@/components/ui/Dialog";
+import { FilterBar } from "@/components/ui/FilterBar";
+import { ErrorState, LoadingState, TableSkeleton } from "@/components/ui/States";
+import { InlineAlert, useToast } from "@/components/ui/Toast";
 import {
   createTransaction,
   getTransaction,
@@ -16,7 +18,7 @@ import {
   validateInput,
 } from "@/lib/services/transactionService";
 import type { Transaction, TransactionInput, TransactionItem } from "@/lib/types";
-import { Plus, Search, Upload, Eye } from "lucide-react";
+import { Eye, FileUp, Plus, Trash2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 
@@ -29,6 +31,7 @@ export default function TransactionsPage() {
 }
 
 function TransactionsView() {
+  const toast = useToast();
   const searchParams = useSearchParams();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -66,13 +69,21 @@ function TransactionsView() {
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
 
+  const hasFilter = search !== "" || status !== "all";
+  const resetFilters = () => {
+    setSearchInput("");
+    setSearch("");
+    setStatus("all");
+    setPage(1);
+  };
+
   const columns: Column<Transaction>[] = useMemo(
     () => [
       {
         key: "tid",
         header: "TID",
-        className: "w-16 font-mono font-semibold text-slate-800",
-        render: (t) => `T${t.tid}`,
+        className: "w-20 font-mono font-semibold text-ink",
+        render: (t) => <span className="text-ink">T{t.tid}</span>,
       },
       {
         key: "items",
@@ -82,9 +93,10 @@ function TransactionsView() {
             {t.items.map((it) => (
               <span
                 key={it.item}
-                className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-700"
+                title={`mục ${it.item} · số lượng ${it.quantity} · utility ${it.utility}`}
+                className="rounded bg-surface-3 px-1.5 py-0.5 font-mono text-[11px] text-ink-2"
               >
-                ({it.item},{it.quantity})
+                {it.item}<span className="text-ink-3"> ×{it.quantity}</span>
               </span>
             ))}
           </span>
@@ -93,9 +105,10 @@ function TransactionsView() {
       {
         key: "utility",
         header: "Utility từng mục",
+        hideOnMobile: true,
         render: (t) => (
-          <span className="font-mono text-[11px] text-slate-500">
-            ({t.items.map((i) => i.utility).join(",")})
+          <span className="font-mono text-[11px] text-ink-3">
+            ({t.items.map((i) => i.utility).join(", ")})
           </span>
         ),
       },
@@ -103,7 +116,7 @@ function TransactionsView() {
         key: "tu",
         header: "TU",
         align: "right",
-        className: "font-semibold text-slate-800",
+        className: "font-semibold text-ink",
         render: (t) => t.tu,
       },
       {
@@ -124,6 +137,7 @@ function TransactionsView() {
           <Button
             size="sm"
             variant="ghost"
+            aria-label={`Xem chi tiết giao dịch T${t.tid}`}
             onClick={(e) => {
               e.stopPropagation();
               setDetailTid(t.tid);
@@ -141,11 +155,11 @@ function TransactionsView() {
     <div>
       <PageHeader
         title="Dữ liệu giao dịch"
-        description="Quản lý luồng giao dịch đầu vào: tìm kiếm, lọc, phân trang, thêm mới và nhập từ CSV/JSON."
+        description="Luồng giao dịch đầu vào: tìm kiếm, lọc trạng thái, thêm mới và nhập khẩu từ CSV/JSON."
         actions={
           <>
             <Button variant="secondary" onClick={() => setImportOpen(true)}>
-              <Upload size={15} /> Nhập CSV/JSON
+              <FileUp size={15} /> Nhập CSV/JSON
             </Button>
             <Button onClick={() => setAddOpen(true)}>
               <Plus size={15} /> Thêm giao dịch
@@ -156,27 +170,21 @@ function TransactionsView() {
       <DemoBanner source={list.source ?? null} />
 
       <Card>
-        <div className="flex flex-wrap items-end gap-2 border-b border-slate-100 p-3">
-          <form
-            className="flex items-end gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
+        <FilterBar
+          onReset={hasFilter ? resetFilters : undefined}
+          meta={list.data ? `${list.data.total} giao dịch` : undefined}
+        >
+          <SearchField
+            label="Tìm theo TID hoặc mã mục"
+            placeholder="VD: T3 hoặc a"
+            value={searchInput}
+            onChange={setSearchInput}
+            onSubmit={() => {
               setPage(1);
-              setSearch(searchInput);
+              setSearch(searchInput.trim());
             }}
-          >
-            <Input
-              label="Tìm theo TID hoặc mã mục"
-              placeholder="VD: T3 hoặc a"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="w-56"
-              name="search"
-            />
-            <Button type="submit" variant="secondary">
-              <Search size={14} /> Tìm
-            </Button>
-          </form>
+            className="w-full sm:w-72"
+          />
           <Select
             label="Lọc trạng thái"
             value={status}
@@ -184,19 +192,17 @@ function TransactionsView() {
               setPage(1);
               setStatus(e.target.value as typeof status);
             }}
-            className="w-40"
+            className="w-full sm:w-44"
             name="status"
           >
             <option value="all">Tất cả</option>
             <option value="processed">Đã xử lý</option>
             <option value="pending">Chờ xử lý</option>
           </Select>
-        </div>
+        </FilterBar>
 
-        {list.loading && <LoadingState />}
-        {list.error && (
-          <ErrorState message={list.error} onRetry={list.reload} />
-        )}
+        {list.loading && <TableSkeleton rows={6} cols={6} />}
+        {list.error && <div className="p-4"><ErrorState message={list.error} onRetry={list.reload} /></div>}
         {!list.loading && !list.error && list.data && (
           <>
             <DataTable
@@ -204,7 +210,15 @@ function TransactionsView() {
               rows={list.data.items}
               rowKey={(t) => t.tid}
               onRowClick={(t) => setDetailTid(t.tid)}
+              caption="Danh sách giao dịch"
               emptyMessage="Không có giao dịch nào khớp bộ lọc."
+              emptyAction={
+                hasFilter ? (
+                  <Button variant="secondary" size="sm" onClick={resetFilters}>
+                    Xóa bộ lọc
+                  </Button>
+                ) : undefined
+              }
             />
             <Pagination
               page={list.data.page}
@@ -216,30 +230,30 @@ function TransactionsView() {
         )}
       </Card>
 
-      <TransactionDetailDialog tid={effectiveTid} onClose={closeDetail} />
+      <TransactionDetailDrawer tid={effectiveTid} onClose={closeDetail} />
       <AddTransactionDialog
         open={addOpen}
         onClose={() => setAddOpen(false)}
-        onAdded={() => list.reload()}
+        onAdded={() => {
+          list.reload();
+          toast.success("Đã thêm giao dịch", "Giao dịch mới đã được đưa vào danh sách.");
+        }}
       />
       <ImportDialog
         open={importOpen}
         onClose={() => setImportOpen(false)}
-        onImported={() => list.reload()}
+        onImported={(count) => {
+          list.reload();
+          toast.success(`Đã nhập ${count} giao dịch`);
+        }}
       />
     </div>
   );
 }
 
-/* ---------------- Chi tiết giao dịch ---------------- */
+/* ---------------- Chi tiết giao dịch (Drawer) ---------------- */
 
-function TransactionDetailDialog({
-  tid,
-  onClose,
-}: {
-  tid: number | null;
-  onClose: () => void;
-}) {
+function TransactionDetailDrawer({ tid, onClose }: { tid: number | null; onClose: () => void }) {
   const detail = useAsync(
     (signal) => getTransaction(tid!, signal),
     [tid],
@@ -247,63 +261,66 @@ function TransactionDetailDialog({
   );
 
   return (
-    <Dialog
+    <Drawer
       open={tid !== null}
       title={tid !== null ? `Chi tiết giao dịch T${tid}` : ""}
+      description="Thông tin đầy đủ của giao dịch nguồn."
       onClose={onClose}
+      size="max-w-lg"
     >
       {detail.loading && <LoadingState />}
       {detail.error && <ErrorState message={detail.error} />}
       {detail.data && (
-        <div className="space-y-3">
-          <div className="flex flex-wrap gap-2 text-sm">
-            <span>
-              <span className="text-slate-500">TID:</span>{" "}
-              <strong className="font-mono">T{detail.data.tid}</strong>
-            </span>
-            <span>
-              <span className="text-slate-500">TU:</span>{" "}
-              <strong>{detail.data.tu}</strong>
-            </span>
-            <span>
-              <span className="text-slate-500">Số mục:</span>{" "}
-              <strong>{detail.data.items.length}</strong>
-            </span>
+        <div className="space-y-4">
+          <dl className="grid grid-cols-3 gap-3">
+            <MetaBox label="TID" value={`T${detail.data.tid}`} mono />
+            <MetaBox label="TU" value={String(detail.data.tu)} mono />
+            <MetaBox label="Số mục" value={String(detail.data.items.length)} mono />
+          </dl>
+
+          <div className="overflow-hidden rounded-lg border border-line">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-line bg-surface-2 text-left text-[11px] tracking-wide text-ink-3 uppercase">
+                  <th className="px-3 py-2 font-semibold">Mục</th>
+                  <th className="px-3 py-2 text-right font-semibold">Quantity</th>
+                  <th className="px-3 py-2 text-right font-semibold">Utility</th>
+                </tr>
+              </thead>
+              <tbody>
+                {detail.data.items.map((it: TransactionItem) => (
+                  <tr key={it.item} className="border-b border-line last:border-b-0">
+                    <td className="px-3 py-2.5 font-mono font-semibold text-ink">{it.item}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">{it.quantity}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">{it.utility}</td>
+                  </tr>
+                ))}
+                <tr className="bg-surface-2 font-semibold">
+                  <td className="px-3 py-2.5 text-ink">Tổng (TU)</td>
+                  <td />
+                  <td className="px-3 py-2.5 text-right tabular-nums text-ink">{detail.data.tu}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 text-left text-xs text-slate-500">
-                <th className="py-2">Mục</th>
-                <th className="py-2 text-right">Quantity</th>
-                <th className="py-2 text-right">Utility</th>
-              </tr>
-            </thead>
-            <tbody>
-              {detail.data.items.map((it: TransactionItem) => (
-                <tr key={it.item} className="border-b border-slate-50 last:border-b-0">
-                  <td className="py-2 font-mono font-semibold text-slate-800">{it.item}</td>
-                  <td className="py-2 text-right tabular-nums">{it.quantity}</td>
-                  <td className="py-2 text-right tabular-nums">{it.utility}</td>
-                </tr>
-              ))}
-              <tr className="bg-slate-50 font-semibold">
-                <td className="py-2">Tổng (TU)</td>
-                <td />
-                <td className="py-2 text-right tabular-nums">{detail.data.tu}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <p className="text-xs text-slate-400">
-            Trạng thái:{" "}
+          <InlineAlert kind="info" title="Trạng thái xử lý">
             {detail.data.processed
-              ? "đã được đưa vào DAE-List."
-              : "chờ xử lý ở pha Construction."}
-          </p>
+              ? "Giao dịch đã được đưa vào DAE-List."
+              : "Chờ xử lý ở pha Construction."}
+          </InlineAlert>
         </div>
       )}
-    </Dialog>
+    </Drawer>
+  );
+}
+
+function MetaBox({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="rounded-lg border border-line bg-surface-2 px-3 py-2">
+      <dt className="text-[11px] text-ink-3">{label}</dt>
+      <dd className={`mt-0.5 text-sm font-semibold text-ink ${mono ? "font-mono" : ""}`}>{value}</dd>
+    </div>
   );
 }
 
@@ -357,64 +374,77 @@ function AddTransactionDialog({
     <Dialog
       open={open}
       title="Thêm giao dịch mới"
+      description="Mỗi dòng gồm một mục, số lượng và utility tương ứng."
       onClose={onClose}
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="secondary" onClick={onClose} disabled={saving}>
             Hủy
           </Button>
-          <Button onClick={submit} disabled={saving}>
-            {saving ? "Đang lưu…" : "Thêm"}
+          <Button onClick={submit} loading={saving}>
+            {saving ? "Đang lưu…" : "Thêm giao dịch"}
           </Button>
         </>
       }
     >
-      <div className="space-y-2">
-        {rows.map((row, idx) => (
-          <div key={idx} className="flex items-end gap-2">
-            <Input
-              label={idx === 0 ? "Mục" : undefined}
-              placeholder="a"
-              value={row.item}
-              onChange={(e) => update(idx, { item: e.target.value })}
-              className="w-24"
-              name={`item-${idx}`}
-            />
-            <Input
-              label={idx === 0 ? "Số lượng" : undefined}
-              type="number"
-              min={1}
-              value={row.quantity}
-              onChange={(e) => update(idx, { quantity: Number(e.target.value) })}
-              className="w-24"
-              name={`qty-${idx}`}
-            />
-            <Input
-              label={idx === 0 ? "Utility" : undefined}
-              type="number"
-              value={row.utility}
-              onChange={(e) => update(idx, { utility: Number(e.target.value) })}
-              className="w-28"
-              name={`util-${idx}`}
-            />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setRows((r) => r.filter((_, i) => i !== idx))}
-              disabled={rows.length === 1}
-            >
-              Xóa
-            </Button>
-          </div>
-        ))}
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => setRows((r) => [...r, { item: "", quantity: 1, utility: 0 }])}
-        >
-          + Thêm dòng
-        </Button>
-        {error && <p className="text-xs font-medium text-red-600">{error}</p>}
+      <div className="space-y-3">
+        <div className="grid grid-cols-[1fr_72px_88px_36px] gap-2 text-[11px] font-medium text-ink-3">
+          <span>Mục</span>
+          <span className="text-right">Số lượng</span>
+          <span className="text-right">Utility</span>
+          <span className="sr-only">Xóa</span>
+        </div>
+
+        <div className="space-y-2">
+          {rows.map((row, idx) => (
+            <div key={idx} className="grid grid-cols-[1fr_72px_88px_36px] items-center gap-2">
+              <Input
+                placeholder="a"
+                aria-label={`Mục dòng ${idx + 1}`}
+                value={row.item}
+                onChange={(e) => update(idx, { item: e.target.value })}
+                name={`item-${idx}`}
+              />
+              <Input
+                type="number"
+                min={1}
+                aria-label={`Số lượng dòng ${idx + 1}`}
+                value={row.quantity}
+                onChange={(e) => update(idx, { quantity: Number(e.target.value) })}
+                name={`qty-${idx}`}
+              />
+              <Input
+                type="number"
+                aria-label={`Utility dòng ${idx + 1}`}
+                value={row.utility}
+                onChange={(e) => update(idx, { utility: Number(e.target.value) })}
+                name={`util-${idx}`}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label={`Xóa dòng ${idx + 1}`}
+                onClick={() => setRows((r) => r.filter((_, i) => i !== idx))}
+                disabled={rows.length === 1}
+              >
+                <Trash2 size={14} />
+              </Button>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setRows((r) => [...r, { item: "", quantity: 1, utility: 0 }])}
+          >
+            <Plus size={13} /> Thêm dòng
+          </Button>
+          <p className="text-[11px] text-ink-3">Dòng để trống sẽ tự bỏ qua.</p>
+        </div>
+
+        {error && <InlineAlert kind="error" title="Dữ liệu chưa hợp lệ">{error}</InlineAlert>}
       </div>
     </Dialog>
   );
@@ -429,7 +459,7 @@ function ImportDialog({
 }: {
   open: boolean;
   onClose: () => void;
-  onImported: () => void;
+  onImported: (count: number) => void;
 }) {
   const [format, setFormat] = useState<"csv" | "json">("csv");
   const [content, setContent] = useState("");
@@ -450,7 +480,7 @@ function ImportDialog({
       const res = await importTransactions(format, content);
       setImported(res.data.imported);
       setErrors(res.data.errors);
-      if (res.data.imported > 0) onImported();
+      if (res.data.imported > 0) onImported(res.data.imported);
     } catch (e) {
       setErrors([{ line: 0, message: e instanceof Error ? e.message : String(e) }]);
     } finally {
@@ -462,14 +492,15 @@ function ImportDialog({
     <Dialog
       open={open}
       title="Nhập dữ liệu giao dịch từ CSV/JSON"
+      description="Mỗi dòng CSV là một giao dịch; lỗi từng dòng sẽ được báo riêng."
       onClose={onClose}
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="secondary" onClick={onClose} disabled={busy}>
             Đóng
           </Button>
-          <Button onClick={submit} disabled={busy || !content.trim()}>
-            {busy ? "Đang nhập…" : "Nhập"}
+          <Button onClick={submit} loading={busy} disabled={!content.trim()}>
+            {busy ? "Đang nhập…" : "Nhập dữ liệu"}
           </Button>
         </>
       }
@@ -479,46 +510,50 @@ function ImportDialog({
           label="Định dạng"
           value={format}
           onChange={(e) => setFormat(e.target.value as "csv" | "json")}
-          className="w-40"
+          className="w-full sm:w-56"
           name="format"
         >
           <option value="csv">CSV (mỗi dòng 1 giao dịch)</option>
           <option value="json">JSON (mảng giao dịch)</option>
         </Select>
-        <div>
-          <label htmlFor="import-content" className="text-xs font-medium text-slate-600">
-            Nội dung
-          </label>
-          <textarea
-            id="import-content"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={6}
-            placeholder={sample}
-            className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 font-mono text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-          />
-          <p className="mt-1 text-[11px] text-slate-400">
-            CSV: <code>item,quantity,utility</code> cách nhau bằng <code>;</code> cho mỗi dòng.
-            JSON: mảng <code>{"{ items: [{item, quantity, utility}] }"}</code>.
-          </p>
-        </div>
 
-        {imported !== null && (
-          <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-            Đã nhập {imported} giao dịch.
-          </p>
+        <Textarea
+          label="Nội dung"
+          id="import-content"
+          rows={7}
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder={sample}
+          hint={
+            format === "csv" ? (
+              <>
+                Mỗi dòng: <code>item,quantity,utility</code>, các mục cách nhau bằng{" "}
+                <code>;</code>.
+              </>
+            ) : (
+              <>
+                Mảng <code>{`[{ items: [{ item, quantity, utility }] }]`}</code>.
+              </>
+            )
+          }
+        />
+
+        {imported !== null && imported > 0 && (
+          <InlineAlert kind="success" title="Nhập thành công">
+            Đã thêm {imported} giao dịch vào danh sách.
+          </InlineAlert>
         )}
         {errors.length > 0 && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-            <p className="font-semibold">{errors.length} dòng có lỗi:</p>
-            <ul className="mt-1 list-inside list-disc">
+          <InlineAlert kind="error" title={`${errors.length} dòng có lỗi`}>
+            <ul className="mt-1 max-h-40 list-inside list-disc space-y-0.5 overflow-y-auto">
               {errors.map((e, i) => (
                 <li key={i}>
-                  Dòng {e.line}: {e.message}
+                  {e.line > 0 ? `Dòng ${e.line}: ` : ""}
+                  {e.message}
                 </li>
               ))}
             </ul>
-          </div>
+          </InlineAlert>
         )}
       </div>
     </Dialog>

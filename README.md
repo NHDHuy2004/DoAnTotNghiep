@@ -57,7 +57,7 @@ Quy tắc DEMO (một hàm dùng chung cho UI và services — `computeDemoMode`
 | 7 | `/history` | **Lịch sử thực thi** — danh sách phiên (DEMO: giữ trong phiên trình duyệt), lọc theo trạng thái. |
 | 8 | `/settings` | **Cài đặt** — trạng thái backend, URL hiệu lực, ghi đè URL, giải thích chế độ DEMO. |
 
-**Bố cục:** Sidebar (định tuyến + nhãn DEMO) + Header (trạng thái backend, phiên thực thi đang chạy), responsive, light SaaS Analytics — xanh dương chủ đạo; badge xanh lá/vàng/đỏ/xám.
+**Bố cục:** Shell mới — Sidebar gom nhóm theo route (Tổng quan · Dữ liệu · Phân tích · Hệ thống), active indicator + thu gọn có tooltip; Header có breadcrumb cấp nhóm và popover trạng thái backend; nền xám nhạt (canvas) + surface trắng + primary xanh dương, màu ngữ nghĩa ổn định (success/warning/danger/info, tím riêng cho DEMO). Responsive 1440/1280/768/390px; accessibility: skip-link, focus ring, bàn phím trên bảng/dialog, `aria-*` cho Tabs/tooltip.
 
 **States hiển thị ở mọi trang:** `loading` · `empty` · `error (+ Thử lại)` ·
 `validation` · `not-runed` (chưa chạy lần nào) · `running` · `completed` · `failed`.
@@ -68,17 +68,26 @@ Quy tắc DEMO (một hàm dùng chung cho UI và services — `computeDemoMode`
 src/
 ├── app/                  # 8 trang + layout (App Router)
 ├── components/
-│   ├── shared/           # DemoBanner, PageHeader
-│   └── ui/               # Card, Badge, StatCard, Controls, DataTable,
-│                         # Dialog, States, Sidebar, Header, AppShell, MetricTooltip
-├── hooks/useAsync.ts     # loading/error/data — tự hủy request, SUY RA loading (không setState trong effect)
+│   ├── shared/           # PageHeader, DemoBanner
+│   ├── layout/           # AppShell, Sidebar, Header
+│   └── ui/               # bộ component dùng chung:
+│                         #   Card, Badge, StatCard, Controls (Button/Input/Select/Search),
+│                         #   DataTable (+Pagination), Dialog/Drawer/ConfirmDialog,
+│                         #   Toast (+InlineAlert), Tabs, FilterBar (+SegmentedControl),
+│                         #   States (Skeleton/Empty/Error/NotReady), MetricTooltip,
+│                         #   Sidebar, Header, AppShell
+├── hooks/
+│   ├── useAsync.ts       # loading/error/data — tự hủy request, SUY RA loading
+│   └── useFocusTrap.ts   # focus trap + scroll lock cho Dialog/Drawer
 └── lib/
     ├── api/              # endpoints.ts (env + ghi đè URL), client.ts (fetch chung)
     ├── context/          # AppContext (trạng thái toàn app)
     ├── services/         # transaction, config, algorithm, daeList, result,
-                          # executionHistory, health — mỗi service: DEMO ? dữ liệu demo : gọi API
+                          #   executionHistory, health — mỗi service: DEMO ? dữ liệu demo : gọi API
     ├── demo/demoData.ts  # DỮ LIỆU DEMO (nhãn "DEMO") — trích từ PDF, không tính toán trong UI
-    └── types/            # kiểu TypeScript dùng chung
+    ├── metrics.ts        # bảng chú giải công thức — nguồn duy nhất cho tooltip
+    ├── nav.ts            # NAV_GROUPS — cấu trúc điều hướng sidebar/breadcrumb
+    └── types.ts          # kiểu TypeScript dùng chung
 docs/API_CONTRACT.md      # hợp đồng endpoint chờ backend
 ```
 
@@ -100,4 +109,11 @@ docs/API_CONTRACT.md      # hợp đồng endpoint chờ backend
 | `npx tsc --noEmit` | ✅ 0 lỗi |
 | `npx eslint .` | ✅ 0 lỗi, 0 warning |
 | `npm run build` | ✅ Compiled + 8 route tĩnh (`/`, `/transactions`, `/config`, `/execution`, `/dae-list`, `/results`, `/history`, `/settings`) |
-| Smoke test `next start` | ✅ 8/8 route HTTP 200, HTML đúng nội dung trang |
+| Smoke test `next start` | ✅ 8/8 route HTTP 200, SSR HTML đúng nội dung từng trang |
+
+## 7. Design system (tóm tắt)
+
+- **Tokens** (`globals.css` → `@theme`): `--color-canvas/surface/line/ink/brand/success/warning/danger/info/accent` + `--radius-card`, `--shadow-card/pop`; animation `.anim-fade/.anim-pop/.anim-slide-in` có tôn trọng `prefers-reduced-motion`.
+- **Màu ngữ nghĩa cố định:** blue = brand/đang xử lý · green = đạt · amber = cảnh báo · red = lỗi · gray = trung tính · **purple = chỉ dành cho nhãn DEMO**.
+- **Tooltip công thức:** `src/lib/metrics.ts` là nguồn duy nhất (ae, dae, maeub, mdaeub, sae, sdae, smdaeub, tdaeub, stdaeub, ltdaeub, haei, expandable, f, minae, …); `MetricTooltip`/`ColumnHeader` render qua **portal** để không bị cắt bởi `overflow-x-auto` của bảng.
+- **Không fake data/progress:** mọi giá trị do service trả về; DEMO luôn gắn nhãn; lỗi backend → ErrorState + nút Thử lại.

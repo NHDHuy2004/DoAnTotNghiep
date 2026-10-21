@@ -1,57 +1,86 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
+import { Loader2, Search, X } from "lucide-react";
+import type {
+  ButtonHTMLAttributes,
+  InputHTMLAttributes,
+  ReactNode,
+  SelectHTMLAttributes,
+  TextareaHTMLAttributes,
+} from "react";
 
-type Variant = "primary" | "secondary" | "danger" | "ghost";
-type Size = "sm" | "md";
+type Variant = "primary" | "secondary" | "ghost" | "danger" | "link";
+type Size = "sm" | "md" | "lg";
 
 const variantMap: Record<Variant, string> = {
   primary:
-    "bg-blue-600 text-white hover:bg-blue-700 focus-visible:ring-blue-500 disabled:bg-blue-300",
+    "bg-brand text-white hover:bg-brand-2 active:bg-brand-2 disabled:bg-brand-line disabled:text-white/80",
   secondary:
-    "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 focus-visible:ring-slate-400 disabled:text-slate-400",
-  danger:
-    "bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500 disabled:bg-red-300",
+    "border border-line-2 bg-surface text-ink-2 hover:border-slate-300 hover:bg-surface-2 hover:text-ink disabled:text-ink-3 disabled:hover:bg-surface",
   ghost:
-    "text-slate-600 hover:bg-slate-100 focus-visible:ring-slate-400 disabled:text-slate-300",
+    "text-ink-2 hover:bg-surface-3 hover:text-ink disabled:text-ink-3",
+  danger:
+    "bg-danger text-white hover:bg-red-700 active:bg-red-700 disabled:bg-red-300",
+  link: "text-brand hover:text-brand-2 underline-offset-2 hover:underline disabled:text-ink-3",
 };
 
 const sizeMap: Record<Size, string> = {
-  sm: "h-8 px-2.5 text-xs",
-  md: "h-9 px-3.5 text-sm",
+  sm: "h-8 gap-1.5 px-2.5 text-xs",
+  md: "h-9 gap-2 px-3.5 text-sm",
+  lg: "h-11 gap-2 px-5 text-sm",
 };
 
+/**
+ * Nút dùng chung. Đã có trạng thái disabled + loading (giữ nguyên kích thước,
+ * có aria-busy cho trình đọc màn hình).
+ */
 export function Button({
   variant = "primary",
   size = "md",
+  loading = false,
   className,
   children,
+  disabled,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: Variant;
   size?: Size;
+  loading?: boolean;
 }) {
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-colors",
-        "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:cursor-not-allowed",
+        "inline-flex items-center justify-center rounded-lg font-medium whitespace-nowrap transition-colors",
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+        "disabled:cursor-not-allowed",
         variantMap[variant],
         sizeMap[size],
         className,
       )}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
       {...props}
     >
+      {loading && <Loader2 size={15} className="animate-spin" />}
       {children}
     </button>
   );
 }
 
+const fieldBase =
+  "w-full rounded-lg border bg-surface text-sm text-ink placeholder:text-ink-3 " +
+  "transition-colors focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand " +
+  "disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-ink-3";
+
+const fieldState = (error?: string) =>
+  error ? "border-danger focus:border-danger focus:ring-danger/15" : "border-line-2";
+
 export function Input({
   label,
   error,
   hint,
+  required,
   className,
   ...props
 }: InputHTMLAttributes<HTMLInputElement> & {
@@ -60,53 +89,188 @@ export function Input({
   hint?: ReactNode;
 }) {
   const id = props.id ?? props.name;
+  const hintId = hint && id ? `${id}-hint` : undefined;
+  const errId = error && id ? `${id}-error` : undefined;
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex min-w-0 flex-col gap-1">
       {label && (
-        <label htmlFor={id} className="text-xs font-medium text-slate-600">
+        <label htmlFor={id} className="text-xs font-medium text-ink-2">
           {label}
+          {required && <span className="ml-1 text-danger" aria-hidden>*</span>}
+          {required && <span className="sr-only"> (bắt buộc)</span>}
         </label>
       )}
       <input
+        className={cn(fieldBase, "h-9 px-3", fieldState(error), className)}
+        aria-invalid={!!error}
+        aria-describedby={errId ?? hintId}
+        required={required}
+        {...props}
+      />
+      {hint && !error && (
+        <p id={hintId} className="text-[11px] leading-relaxed text-ink-3">
+          {hint}
+        </p>
+      )}
+      {error && (
+        <p id={errId} className="text-[11px] font-medium text-danger" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export function Textarea({
+  label,
+  error,
+  hint,
+  className,
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  label?: string;
+  error?: string;
+  hint?: ReactNode;
+}) {
+  const id = props.id ?? props.name;
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      {label && (
+        <label htmlFor={id} className="text-xs font-medium text-ink-2">
+          {label}
+        </label>
+      )}
+      <textarea
         className={cn(
-          "h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-800",
-          "placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100",
-          error && "border-red-400 focus:border-red-500 focus:ring-red-100",
+          fieldBase,
+          "min-h-24 resize-y px-3 py-2 font-mono text-xs leading-relaxed",
+          fieldState(error),
           className,
         )}
         aria-invalid={!!error}
         {...props}
       />
-      {hint && <p className="text-[11px] text-slate-400">{hint}</p>}
-      {error && <p className="text-[11px] font-medium text-red-600">{error}</p>}
+      {hint && !error && <p className="text-[11px] text-ink-3">{hint}</p>}
+      {error && (
+        <p className="text-[11px] font-medium text-danger" role="alert">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
 
 export function Select({
   label,
+  error,
   className,
   children,
   ...props
-}: SelectHTMLAttributes<HTMLSelectElement> & { label?: string }) {
+}: SelectHTMLAttributes<HTMLSelectElement> & { label?: string; error?: string }) {
   const id = props.id ?? props.name;
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex min-w-0 flex-col gap-1">
       {label && (
-        <label htmlFor={id} className="text-xs font-medium text-slate-600">
+        <label htmlFor={id} className="text-xs font-medium text-ink-2">
           {label}
         </label>
       )}
-      <select
-        className={cn(
-          "h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-sm text-slate-800",
-          "focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100",
-          className,
-        )}
-        {...props}
-      >
-        {children}
-      </select>
+      <div className="relative">
+        <select
+          className={cn(
+            fieldBase,
+            "h-9 appearance-none py-1 pr-8 pl-2.5",
+            fieldState(error),
+            className,
+          )}
+          aria-invalid={!!error}
+          {...props}
+        >
+          {children}
+        </select>
+        <svg
+          aria-hidden
+          viewBox="0 0 20 20"
+          fill="none"
+          className="pointer-events-none absolute right-2 top-1/2 size-4 -translate-y-1/2 text-ink-3"
+        >
+          <path d="m6 8 4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+      {error && (
+        <p className="text-[11px] font-medium text-danger" role="alert">
+          {error}
+        </p>
+      )}
     </div>
+  );
+}
+
+/**
+ * Thanh tìm kiếm: ô nhập có icon, nút xóa và Enter để tìm.
+ * `value` do phía gọi kiểm soát (gõ xong bấm Tìm / submit form).
+ */
+export function SearchField({
+  label,
+  placeholder,
+  value,
+  onChange,
+  onSubmit,
+  className,
+  name = "search",
+}: {
+  label?: string;
+  placeholder?: string;
+  value: string;
+  onChange: (v: string) => void;
+  onSubmit?: () => void;
+  className?: string;
+  name?: string;
+}) {
+  return (
+    <form
+      role="search"
+      className={cn("flex min-w-0 items-end gap-2", className)}
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit?.();
+      }}
+    >
+      <div className="flex min-w-0 flex-col gap-1">
+        {label && (
+          <label htmlFor={name} className="text-xs font-medium text-ink-2">
+            {label}
+          </label>
+        )}
+        <div className="relative">
+          <Search size={15} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-3" />
+          <input
+            id={name}
+            name={name}
+            type="search"
+            value={value}
+            placeholder={placeholder}
+            onChange={(e) => onChange(e.target.value)}
+            className={cn(
+              fieldBase,
+              "h-9 py-1 pr-8 pl-8 [&::-webkit-search-cancel-button]:hidden",
+            )}
+          />
+          {value && (
+            <button
+              type="button"
+              aria-label="Xóa từ khóa"
+              onClick={() => onChange("")}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-ink-3 hover:bg-surface-3 hover:text-ink"
+            >
+              <X size={13} />
+            </button>
+          )}
+        </div>
+      </div>
+      <Button type="submit" variant="secondary" className="shrink-0">
+        Tìm
+      </Button>
+    </form>
   );
 }

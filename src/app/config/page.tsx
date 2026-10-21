@@ -1,19 +1,28 @@
 "use client";
 
 import { DemoBanner, PageHeader } from "@/components/shared/PageHeader";
+import { Badge } from "@/components/ui/Badge";
 import { Button, Input, Select } from "@/components/ui/Controls";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/Dialog";
 import { MetricTooltip } from "@/components/ui/MetricTooltip";
 import { ErrorState, LoadingState } from "@/components/ui/States";
+import { InlineAlert, useToast } from "@/components/ui/Toast";
 import { useApp } from "@/lib/context/AppContext";
 import { resetConfig, saveConfig, validateConfig } from "@/lib/services/configService";
 import { startExecution } from "@/lib/services/algorithmService";
 import { pushDemoHistory } from "@/lib/services/executionHistoryService";
 import type { AlgorithmConfig, ItemCost } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import { Play, RotateCcw, Save, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+/**
+ * Cấu hình thuật toán — tham số bắt buộc (f, minae) tách khỏi phần tùy chọn
+ * (runMode), bảng chi phí có validate từng dòng. Chạy thuật toán là hành động
+ * chính, được làm nổi bật ở cuối trang.
+ */
 export default function ConfigPage() {
   const {
     config,
@@ -24,18 +33,21 @@ export default function ConfigPage() {
     setConfigDirty,
     reloadConfig,
     setActiveSession,
+    demoMode,
   } = useApp();
   const router = useRouter();
+  const toast = useToast();
 
   const [draft, setDraft] = useState<AlgorithmConfig | null>(null);
   const [syncedConfig, setSyncedConfig] = useState<AlgorithmConfig | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
-  const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [showFieldErrors, setShowFieldErrors] = useState(false);
+  const [nameConflict, setNameConflict] = useState<string | null>(null);
   const [confirmRun, setConfirmRun] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const [running, setRunning] = useState(false);
 
-  // Khởi tạo bản nháp từ cấu hình vừa tải (điều chỉnh state ngay trong render,
-  // chỉ chạy khi config đổi và draft chưa có — không cần effect).
+  // Khởi tạo bản nháp từ cấu hình vừa tải (điều chỉnh state ngay trong render).
   if (config !== null && config !== syncedConfig && draft === null) {
     setSyncedConfig(config);
     setDraft(structuredClone(config));
@@ -61,34 +73,92 @@ export default function ConfigPage() {
         }))
     : [];
 
+  /** Lỗi hiển thị ngay tại ô nhập (chỉ hiện sau lần bấm Lưu/Chạy đầu tiên). */
+  const fieldError = (field: "f" | "minae" | `inv:${string}`): string | undefined => {
+    if (!showFieldErrors || !draft) return undefined;
+    if (field === "f") {
+      return Number.isFinite(draft.f) && draft.f > 0 && draft.f < 1
+        ? undefined
+        : "f phải nằm trong khoảng (0; 1).";
+    }
+    if (field === "minae") {
+      return Number.isFinite(draft.minae) && draft.minae >= 0
+        ? undefined
+        : "minae phải là số không âm.";
+    }
+    const key = field.slice(4);
+    const v = draft.investmentTable[key];
+    return Number.isFinite(v) && v > 0 ? undefined : `inv("${key}") phải là số dương.`;
+  };
+
   const updateDraft = (patch: Partial<AlgorithmConfig>) => {
     if (!draft) return;
     setDraft({ ...draft, ...patch });
     setConfigDirty(true);
-    setSaveMsg(null);
   };
 
   const updateItem = (idx: number, patch: Partial<ItemCost>) => {
     if (!draft) return;
+    // Đổi tên mục: từ chối khi trùng tên mục khác để không ghi đè mất dữ liệu
+    if (patch.item !== undefined) {
+      const newName = patch.item.trim();
+      const conflict = items.some((it, i) => i !== idx && it.item === newName);
+      if (newName && conflict) {
+        setNameConflict(`Mục "${newName}" đã tồn tại — không thể đổi tên thành tên trùng.`);
+        return;
+      }
+      setNameConflict(null);
+      patch = { ...patch, item: newName };
+    }
     const next = items.map((it, i) => (i === idx ? { ...it, ...patch } : it));
-    updateDraft({
-      investmentTable: Object.fromEntries(next.map((it) => [it.item, it.inv])),
-      unitCostTable: Object.fromEntries(next.map((it) => [it.item, it.cu])),
-    });
+    // Xây lại bảng từ danh sách để đổi tên mục không làm mất dữ liệu
+    const inv: Record<string, number> = {};
+    const cu: Record<string, number> = {};
+    for (const it of next) {
+      inv[it.item] = it.inv;
+      cu[it.item] = it.cu;
+    }
+    updateDraft({ investmentTable: inv, unitCostTable: cu });
+  };
+
+  /** Lỗi tên mục: trống hoặc trùng lặp (chỉ hiện sau khi bấm Lưu/Chạy). */
+  const nameError = (idx: number): string | undefined => {
+    if (!showFieldErrors) return undefined;
+    const cur = items[idx];
+    if (!cur || !cur.item.trim()) return "Tên mục không được để trống.";
+    const dup = items.filter((it) => it.item === cur.item).length;
+    return dup > 1 ? `Mục "${cur.item}" bị trùng lặp.` : undefined;
+  };
+
+  const removeItem = (idx: number) => {
+    if (!draft) return;
+    const target = items[idx];
+    const inv = { ...draft.investmentTable };
+    const cu = { ...draft.unitCostTable };
+    delete inv[target.item];
+    delete cu[target.item];
+    updateDraft({ investmentTable: inv, unitCostTable: cu });
   };
 
   const handleSave = async () => {
     if (!draft) return;
+    setShowFieldErrors(true);
     const v = validateConfig(draft);
     setErrors(v);
-    if (v.length > 0) return;
+    if (v.length > 0) {
+      toast.error("Cấu hình chưa hợp lệ", v[0]);
+      return;
+    }
     try {
       const res = await saveConfig(draft);
       setConfig(res.data);
       setConfigDirty(false);
-      setSaveMsg("Đã lưu cấu hình.");
+      setErrors([]);
+      toast.success("Đã lưu cấu hình", "Các tham số sẽ được dùng cho phiên chạy tiếp theo.");
     } catch (e) {
-      setErrors([e instanceof Error ? e.message : String(e)]);
+      const msg = e instanceof Error ? e.message : String(e);
+      setErrors([msg]);
+      toast.error("Không lưu được cấu hình", msg);
     }
   };
 
@@ -99,16 +169,28 @@ export default function ConfigPage() {
       setConfig(res.data);
       setConfigDirty(false);
       setErrors([]);
-      setSaveMsg("Đã khôi phục cấu hình mặc định.");
+      setShowFieldErrors(false);
+      toast.success("Đã khôi phục cấu hình mặc định");
     } catch (e) {
-      setErrors([e instanceof Error ? e.message : String(e)]);
+      const msg = e instanceof Error ? e.message : String(e);
+      setErrors([msg]);
+      toast.error("Không khôi phục được cấu hình", msg);
+    } finally {
+      setConfirmReset(false);
     }
   };
 
   const doRun = async () => {
     if (!draft) return;
+    setShowFieldErrors(true);
+    const v = validateConfig(draft);
+    setErrors(v);
+    if (v.length > 0) {
+      toast.error("Không thể chạy", v[0]);
+      setConfirmRun(false);
+      return;
+    }
     setRunning(true);
-    setErrors([]);
     try {
       // Lưu cấu hình trước khi chạy để phiên dùng đúng tham số hiện tại
       const saved = await saveConfig(draft);
@@ -117,9 +199,12 @@ export default function ConfigPage() {
       const session = await startExecution(saved.data);
       pushDemoHistory(session.data);
       setActiveSession(session.data);
+      toast.success("Đã khởi tạo phiên thực thi", "Đang chuyển tới trang Thực thi.");
       router.push("/execution");
     } catch (e) {
-      setErrors([e instanceof Error ? e.message : String(e)]);
+      const msg = e instanceof Error ? e.message : String(e);
+      setErrors([msg]);
+      toast.error("Không khởi tạo được phiên", msg);
     } finally {
       setRunning(false);
       setConfirmRun(false);
@@ -128,185 +213,274 @@ export default function ConfigPage() {
 
   if (!draft) return null;
 
+  const requiredCount = items.filter((it) => it.inv > 0).length;
+
   return (
     <div>
       <PageHeader
         title="Cấu hình thuật toán"
-        description="Thiết lập tham số HAEIM_Damped trước khi chạy: hệ số suy giảm f, ngưỡng minae, bảng chi phí đầu tư."
+        description="Thiết lập tham số HAEIM_Damped trước khi chạy: hệ số suy giảm f, ngưỡng minae và bảng chi phí đầu tư."
+        badges={configDirty ? <Badge variant="amber">Chưa lưu thay đổi</Badge> : undefined}
         actions={
           <>
-            <Button variant="secondary" onClick={handleReset}>
-              Khôi phục mặc định
+            <Button variant="secondary" onClick={() => setConfirmReset(true)}>
+              <RotateCcw size={15} /> Khôi phục mặc định
             </Button>
-            <Button onClick={handleSave}>Lưu cấu hình</Button>
+            <Button onClick={handleSave}>
+              <Save size={15} /> Lưu cấu hình
+            </Button>
           </>
         }
       />
-      <DemoBanner source="demo" />
+      <DemoBanner source={demoMode ? "demo" : null} />
 
-      {saveMsg && (
-        <p className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-          {saveMsg}
-        </p>
-      )}
       {errors.length > 0 && (
-        <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-          <p className="font-semibold">Cấu hình chưa hợp lệ:</p>
-          <ul className="mt-1 list-inside list-disc">
-            {errors.map((e, i) => (
-              <li key={i}>{e}</li>
-            ))}
-          </ul>
+        <div className="mb-4">
+          <InlineAlert kind="error" title="Cấu hình chưa hợp lệ">
+            <ul className="mt-1 list-inside list-disc space-y-0.5">
+              {errors.map((e, i) => (
+                <li key={i}>{e}</li>
+              ))}
+            </ul>
+          </InlineAlert>
         </div>
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* Tham số */}
+        {/* Tham số bắt buộc */}
         <Card>
           <CardHeader
-            title="Tham số suy giảm & ngưỡng"
-            description="Hai tham số chính chi phối toàn bộ thuật toán."
+            title="Tham số bắt buộc"
+            description="Hai tham số chi phối toàn bộ thuật toán suy giảm."
+            icon={<span className="text-[13px] font-bold">f</span>}
+            actions={<Badge variant="blue">Bắt buộc</Badge>}
           />
-          <CardBody className="space-y-4">
+          <CardBody className="space-y-5">
             <div className="flex items-start gap-1.5">
-              <Input
-                label="Hệ số suy giảm f"
-                type="number"
-                step="0.01"
-                min={0.01}
-                max={0.99}
-                value={draft.f}
-                onChange={(e) => updateDraft({ f: Number(e.target.value) })}
-                hint="0 < f < 1. Gần 1 → nhớ lâu; nhỏ → quên nhanh. Ví dụ tài liệu: 0.8"
-                name="f"
-                className="w-40"
-              />
-              <MetricTooltip
-                term="Hệ số suy giảm f"
-                formula="w(t) = f^(Ltid − tid)"
-                description="Trọng số suy giảm theo tuổi giao dịch. Giao dịch mới nhất (tid = Ltid) có trọng số 1; giao dịch cũ hơn bị giảm theo lũy thừa của f."
-              />
+              <div className="w-full max-w-xs">
+                <Input
+                  label="Hệ số suy giảm f"
+                  required
+                  type="number"
+                  step="0.01"
+                  min={0.01}
+                  max={0.99}
+                  value={draft.f}
+                  onChange={(e) => updateDraft({ f: Number(e.target.value) })}
+                  error={fieldError("f")}
+                  hint={
+                    <>
+                      0 &lt; f &lt; 1. Gần 1 → nhớ lâu; nhỏ → quên nhanh. Ví dụ trong tài liệu: 0.8
+                    </>
+                  }
+                  name="f"
+                />
+              </div>
+              <MetricTooltip metricKey="f" />
             </div>
+
             <div className="flex items-start gap-1.5">
-              <Input
-                label="Ngưỡng minae"
-                type="number"
-                step="0.01"
-                min={0}
-                value={draft.minae}
-                onChange={(e) => updateDraft({ minae: Number(e.target.value) })}
-                hint="Tập mục có Sdae ≥ minae được công nhận là HAEI. Ví dụ tài liệu: 0.2"
-                name="minae"
-                className="w-40"
-              />
-              <MetricTooltip
-                term="Ngưỡng minae"
-                formula="Sdae(P) ≥ minae → HAEI"
-                description="Ngưỡng hiệu suất trung bình suy giảm tối thiểu. Dùng để lọc ở pha Restructure (SMDAEUB) và công nhận kết quả ở pha Expansion."
-              />
+              <div className="w-full max-w-xs">
+                <Input
+                  label="Ngưỡng minae"
+                  required
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  value={draft.minae}
+                  onChange={(e) => updateDraft({ minae: Number(e.target.value) })}
+                  error={fieldError("minae")}
+                  hint="Tập mục có Sdae ≥ minae được công nhận là HAEI. Ví dụ trong tài liệu: 0.2"
+                  name="minae"
+                />
+              </div>
+              <MetricTooltip metricKey="minae" />
             </div>
-            <Select
-              label="Chế độ chạy"
-              value={draft.runMode}
-              onChange={(e) =>
-                updateDraft({ runMode: e.target.value as AlgorithmConfig["runMode"] })
-              }
-              className="w-56"
-              name="runMode"
-            >
-              <option value="full">Chạy toàn bộ 3 pha</option>
-              <option value="phase">Chạy từng pha (chờ backend hỗ trợ)</option>
-            </Select>
-            {draft.runMode === "phase" && (
-              <p className="text-xs text-amber-600">
-                Chế độ chạy từng pha chỉ hoạt động khi backend hỗ trợ API dừng giữa chừng.
+
+            <div className="border-t border-line pt-4">
+              <div className="mb-1.5 flex items-center gap-1.5">
+                <p className="text-xs font-medium text-ink-2">
+                  Chế độ chạy <span className="text-ink-3">(tùy chọn)</span>
+                </p>
+              </div>
+              <Select
+                value={draft.runMode}
+                onChange={(e) =>
+                  updateDraft({ runMode: e.target.value as AlgorithmConfig["runMode"] })
+                }
+                className="w-full sm:w-72"
+                name="runMode"
+                aria-describedby="runMode-hint"
+              >
+                <option value="full">Chạy toàn bộ 3 pha</option>
+                <option value="phase">Chạy từng pha</option>
+              </Select>
+              <p id="runMode-hint" className="mt-1.5 text-[11px] leading-relaxed text-ink-3">
+                Chế độ “Chạy từng pha” chỉ hoạt động khi backend hỗ trợ API dừng giữa chừng
+                (pause/resume theo hợp đồng API).
               </p>
-            )}
+            </div>
           </CardBody>
         </Card>
 
-        {/* Bảng đầu tư */}
+        {/* Bảng chi phí đầu tư */}
         <Card>
           <CardHeader
-            title="Bảng chi phí đầu tư (investmentTable)"
-            description="inv(i) — chi phí đầu tư đơn vị của từng mục. cu(i) — chi phí đơn vị."
+            title="Bảng chi phí đầu tư"
+            description={
+              <>
+                <code className="font-mono">inv(i)</code> — chi phí đầu tư đơn vị ·{" "}
+                <code className="font-mono">cu(i)</code> — chi phí đơn vị của từng mục.
+              </>
+            }
+            icon={<span className="text-[13px] font-bold">Σ</span>}
+            actions={<Badge variant="gray">{items.length} mục</Badge>}
           />
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[380px] text-sm">
+            <table className="w-full min-w-[420px] text-sm">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/70 text-left text-xs text-slate-500">
-                  <th className="px-4 py-2.5">Mục</th>
-                  <th className="px-4 py-2.5 text-right">cu(i)</th>
-                  <th className="px-4 py-2.5 text-right">inv(i)</th>
+                <tr className="border-b border-line bg-surface-2 text-left text-[11px] tracking-wide text-ink-3 uppercase">
+                  <th className="px-4 py-2.5 font-semibold">Mục</th>
+                  <th className="px-4 py-2.5 text-right font-semibold">cu(i)</th>
+                  <th className="px-4 py-2.5 text-right font-semibold">
+                    <span className="inline-flex items-center gap-1">
+                      inv(i)
+                      <MetricTooltip metricKey="inv" />
+                    </span>
+                  </th>
+                  <th className="w-10 px-2 py-2.5">
+                    <span className="sr-only">Xóa</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {items.map((it, idx) => (
-                  <tr key={it.item} className="border-b border-slate-50 last:border-b-0">
-                    <td className="px-4 py-2 font-mono font-semibold text-slate-800">
-                      {it.item}
-                    </td>
-                    <td className="px-2 py-1.5 text-right">
-                      <input
-                        type="number"
-                        aria-label={`cu của mục ${it.item}`}
-                        value={it.cu}
-                        onChange={(e) => updateItem(idx, { cu: Number(e.target.value) })}
-                        className="w-24 rounded border border-slate-200 px-2 py-1 text-right text-sm focus:border-blue-500 focus:outline-none"
-                      />
-                    </td>
-                    <td className="px-2 py-1.5 text-right">
-                      <input
-                        type="number"
-                        aria-label={`inv của mục ${it.item}`}
-                        value={it.inv}
-                        onChange={(e) => updateItem(idx, { inv: Number(e.target.value) })}
-                        className="w-24 rounded border border-slate-200 px-2 py-1 text-right text-sm focus:border-blue-500 focus:outline-none"
-                      />
+                {items.map((it, idx) => {
+                  const invError = fieldError(`inv:${it.item}`);
+                  return (
+                    <tr key={it.item || `row-${idx}`} className="border-b border-line last:border-b-0">
+                      <td className="px-4 py-2">
+                        <input
+                          type="text"
+                          aria-label={`Tên mục dòng ${idx + 1}`}
+                          aria-invalid={!!nameError(idx) || !it.item.trim()}
+                          value={it.item}
+                          placeholder="tên mục"
+                          onChange={(e) => updateItem(idx, { item: e.target.value })}
+                          className={cn(
+                            "w-full max-w-36 rounded-md border bg-surface px-2 py-1.5 font-mono text-sm text-ink transition-colors focus:outline-none focus:ring-2",
+                            !it.item.trim() && showFieldErrors
+                              ? "border-warning focus:border-warning focus:ring-warning/15"
+                              : nameError(idx)
+                                ? "border-danger focus:border-danger focus:ring-danger/15"
+                                : "border-line-2 focus:border-brand focus:ring-brand/15",
+                          )}
+                        />
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <input
+                          type="number"
+                          aria-label={`cu của mục ${it.item || idx + 1}`}
+                          value={it.cu}
+                          onChange={(e) => updateItem(idx, { cu: Number(e.target.value) })}
+                          className="w-24 rounded-md border border-line-2 bg-surface px-2 py-1.5 text-right text-sm text-ink transition-colors focus:border-brand focus:ring-2 focus:ring-brand/15 focus:outline-none"
+                        />
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <input
+                          type="number"
+                          aria-label={`inv của mục ${it.item || idx + 1}`}
+                          aria-invalid={!!invError}
+                          value={it.inv}
+                          onChange={(e) => updateItem(idx, { inv: Number(e.target.value) })}
+                          className={cn(
+                            "w-24 rounded-md border bg-surface px-2 py-1.5 text-right text-sm text-ink transition-colors focus:outline-none focus:ring-2",
+                            invError
+                              ? "border-danger focus:border-danger focus:ring-danger/15"
+                              : "border-line-2 focus:border-brand focus:ring-brand/15",
+                          )}
+                        />
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <button
+                          type="button"
+                          aria-label={`Xóa mục ${it.item || idx + 1}`}
+                          onClick={() => removeItem(idx)}
+                          className="rounded-md p-1.5 text-ink-3 transition-colors hover:bg-danger-soft hover:text-danger"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {items.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-6 text-center text-xs text-ink-3">
+                      Bảng còn trống — thuật toán cần ít nhất một mục.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
-          <div className="border-t border-slate-100 p-3">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                if (!draft) return;
-                const next = [...items, { item: "", cu: 0, inv: 0 }];
-                updateDraft({
-                  investmentTable: Object.fromEntries(next.map((it) => [it.item, it.inv])),
-                  unitCostTable: Object.fromEntries(next.map((it) => [it.item, it.cu])),
-                });
-              }}
-            >
-              + Thêm mục
-            </Button>
+          <div className="space-y-2 border-t border-line px-4 py-3">
+            {nameConflict && (
+              <InlineAlert kind="warning">{nameConflict}</InlineAlert>
+            )}
+            <div className="flex items-center justify-between gap-3">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  // Tên mặc định không trùng bất kỳ mục nào đang có
+                  let n = 1;
+                  while (items.some((it) => it.item === `m${n}`)) n++;
+                  const name = `m${n}`;
+                  updateDraft({
+                    investmentTable: { ...draft.investmentTable, [name]: 1 },
+                    unitCostTable: { ...draft.unitCostTable, [name]: 0 },
+                  });
+                }}
+              >
+                + Thêm mục
+              </Button>
+              <p className="text-[11px] text-ink-3">
+                {items.length > 0 && `${requiredCount}/${items.length} mục có inv hợp lệ`}
+              </p>
+            </div>
           </div>
         </Card>
       </div>
 
-      {/* Chạy */}
-      <Card className="mt-4">
-        <CardBody className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-slate-800">Bắt đầu phiên thực thi</p>
-            <p className="text-xs text-slate-500">
-              Lưu cấu hình và chạy thuật toán trên luồng giao dịch hiện tại.
-              {configDirty && (
-                <span className="ml-1 font-medium text-amber-600">
-                  (Cấu hình chưa lưu sẽ được lưu tự động.)
-                </span>
-              )}
+      {/* Chạy thuật toán — hành động chính */}
+      <Card className="mt-4 border-brand-line">
+        <CardBody className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+              Bắt đầu phiên thực thi
+              {configDirty && <Badge variant="amber">sẽ tự lưu trước khi chạy</Badge>}
+            </p>
+            <p className="mt-0.5 text-xs leading-relaxed text-ink-3">
+              Lưu cấu hình hiện tại rồi chạy HAEIM_Damped trên luồng giao dịch: Construction →
+              Restructure → Expansion.
             </p>
           </div>
-          <Button onClick={() => setConfirmRun(true)} disabled={running}>
+          <Button size="lg" onClick={() => setConfirmRun(true)} loading={running} className="shrink-0">
+            <Play size={16} />
             {running ? "Đang khởi tạo…" : "Chạy thuật toán"}
           </Button>
         </CardBody>
       </Card>
+
+      <ConfirmDialog
+        open={confirmReset}
+        title="Khôi phục cấu hình mặc định?"
+        message="Mọi tham số hiện tại (f, minae, bảng chi phí) sẽ quay về giá trị mặc định. Hành động này không thể hoàn tác."
+        confirmLabel="Khôi phục"
+        danger
+        onConfirm={handleReset}
+        onCancel={() => setConfirmReset(false)}
+      />
 
       <ConfirmDialog
         open={confirmRun}
@@ -314,9 +488,10 @@ export default function ConfigPage() {
         message={
           configDirty
             ? "Cấu hình hiện tại chưa được lưu. Hệ thống sẽ lưu cấu hình rồi bắt đầu phiên mới. Tiếp tục?"
-            : "Bắt đầu phiên thực thi mới với cấu hình hiện tại? Phiên trước (nếu có) sẽ bị thay thế."
+            : "Bắt đầu phiên thực thi mới với cấu hình hiện tại. Phiên trước (nếu có) sẽ bị thay thế."
         }
         confirmLabel="Bắt đầu chạy"
+        loading={running}
         onConfirm={doRun}
         onCancel={() => setConfirmRun(false)}
       />

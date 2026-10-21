@@ -1,9 +1,67 @@
 @import "tailwindcss";
 
+/* =========================================================================
+   DESIGN SYSTEM — HAEIM_Damped
+   Modern Analytics Dashboard / Professional Research Platform
+   - Nền xám rất nhạt, surface trắng, primary xanh dương/navy.
+   - Mỗi màu có nghĩa cố định xuyên suốt hệ thống (không dùng màu tùy tiện).
+   ========================================================================= */
 @theme {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* Font hỗ trợ tiếng Việt tốt trên mọi hệ điều hành */
+  --font-sans:
+    "Segoe UI", ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", Arial,
+    "Noto Sans", sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+
+  /* Nền & bề mặt */
+  --color-canvas: #f5f7fa;
+  --color-surface: #ffffff;
+  --color-surface-2: #f8fafc;
+  --color-surface-3: #eef2f7;
+
+  /* Đường viền */
+  --color-line: #e6eaf0;
+  --color-line-2: #d5dce6;
+
+  /* Văn bản */
+  --color-ink: #0f1729;
+  --color-ink-2: #46566d;
+  --color-ink-3: #77879d;
+
+  /* Primary — xanh dương / navy */
+  --color-brand: #1d4ed8;
+  --color-brand-2: #1e40af;
+  --color-brand-soft: #eef4ff;
+  --color-brand-line: #cadcff;
+
+  /* Ngữ nghĩa trạng thái */
+  --color-success: #047857;
+  --color-success-soft: #ecfdf5;
+  --color-success-line: #a7f3d0;
+
+  --color-warning: #b45309;
+  --color-warning-soft: #fffbeb;
+  --color-warning-line: #fde68a;
+
+  --color-danger: #b91c1c;
+  --color-danger-soft: #fef2f2;
+  --color-danger-line: #fecaca;
+
+  --color-info: #0369a1;
+  --color-info-soft: #f0f9ff;
+  --color-info-line: #bae6fd;
+
+  /* Accent dành riêng cho nhãn DEMO (không dùng cho trạng thái khác) */
+  --color-accent: #6d28d9;
+  --color-accent-soft: #f5f3ff;
+  --color-accent-line: #ddd6fe;
+
+  /* Bán kính & đổ bóng thống nhất */
+  --radius-card: 12px;
+  --shadow-card: 0 1px 2px rgba(15, 23, 41, 0.04), 0 1px 3px rgba(15, 23, 41, 0.05);
+  --shadow-pop: 0 10px 30px rgba(15, 23, 41, 0.12), 0 2px 8px rgba(15, 23, 41, 0.06);
 }
 
 html {
@@ -11,18 +69,149 @@ html {
 }
 
 body {
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
   font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Dòng cột bảng dài không bị tràn */
-table {
+/* Phân cấp heading nhất quán */
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+}
+
+/* Giá trị số, công thức, TID: dễ quét bằng mắt */
+table,
+.tabular {
   font-variant-numeric: tabular-nums;
+}
+
+code,
+pre {
+  font-family: var(--font-mono);
+}
+
+/* Focus ring thống nhất cho mọi phần tử tương tác (keyboard) */
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: var(--color-brand-line);
+  color: var(--color-ink);
 }
 
 /* Thanh cuộn mảnh, hợp giao diện dashboard */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-color: #c8d0dc transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #c8d0dc;
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #aab6c6;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Không thanh cuộn ngang thừa ở container biểu đồ / chip */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Chuyển động có mục đích: mở/đóng panel, ô thông báo — nhẹ nhàng, ngắn */
+@keyframes haeim-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes haeim-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes haeim-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+.anim-fade {
+  animation: haeim-fade 0.16s ease-out;
+}
+.anim-pop {
+  animation: haeim-pop 0.18s ease-out;
+}
+.anim-slide-in {
+  animation: haeim-slide-in 0.22s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+@keyframes haeim-slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: none;
+  }
+}
+.anim-slide-in-left {
+  animation: haeim-slide-in-left 0.22s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* Nhập liệu số: không có spinner khi ô hẹp */
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Chuyển động nhẹ nhàng, có mục đích — tắt khi người dùng yêu cầu giảm chuyển động */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

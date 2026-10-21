@@ -1,32 +1,46 @@
 "use client";
 
 import { DemoBanner, PageHeader } from "@/components/shared/PageHeader";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Controls";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
-import { StatCard } from "@/components/ui/StatCard";
-import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
+import { StatCard, StatInline } from "@/components/ui/StatCard";
+import { ChartSkeleton, EmptyState, ErrorState, StatSkeleton } from "@/components/ui/States";
 import { useApp } from "@/lib/context/AppContext";
 import { useAsync } from "@/hooks/useAsync";
+import { DEMO_DASHBOARD } from "@/lib/demo/demoData";
 import { listResults } from "@/lib/services/resultService";
 import { listTransactions } from "@/lib/services/transactionService";
-import { DEMO_DASHBOARD } from "@/lib/demo/demoData";
 import { fmt, fmtItemset } from "@/lib/utils";
 import {
+  Activity,
   ArrowRight,
   Database,
   Hash,
   Layers,
   ListChecks,
   Percent,
+  SlidersHorizontal,
   Timer,
   Trophy,
 } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 /**
- * Dashboard — dùng dữ liệu thật từ services:
- * - transactions từ transactionService (tổng số giao dịch, mục khác nhau)
- * - results từ resultService (tập mục khám phá, HAEI)
- * - phaseStats chỉ có ở demo mode (backend chưa cung cấp thống kê pha).
+ * Dashboard — số liệu lấy từ services thật (transactionService, resultService).
+ * Không tính toán thuật toán trong UI: mọi giá trị đều do service trả về.
  */
 export default function DashboardPage() {
   const { config, backendStatus, demoMode: demo } = useApp();
@@ -47,263 +61,414 @@ export default function DashboardPage() {
     ? Math.max(...tx.data.items.map((t) => t.tid))
     : null;
 
-  // Biểu đồ: số giao dịch theo TID (lấy từ transactions thật)
-  const txByTid = tx.data?.items ?? [];
-
-  // Biểu đồ: phân bố Sdae của các tập mục (lấy từ results thật)
-  const sdaeRows = results.data?.items ?? [];
+  const minae = config?.minae ?? null;
+  const f = config?.f ?? null;
 
   const loading = tx.loading || results.loading;
   const error = tx.error ?? results.error;
+
+  const txRows = (tx.data?.items ?? []).map((t) => ({
+    name: `T${t.tid}`,
+    value: t.tu,
+  }));
+
+  const sdaeRows = (results.data?.items ?? []).map((r) => ({
+    name: fmtItemset(r.itemset),
+    value: r.sdae,
+    isHaei: r.isHaei,
+  }));
 
   return (
     <div>
       <PageHeader
         title="Tổng quan hệ thống"
-        description="Cái nhìn nhanh về dữ liệu đầu vào, cấu hình và kết quả khai thác tập mục HAEI theo mô hình suy giảm."
+        description="Dữ liệu đầu vào, cấu hình hiện hành và kết quả khai thác tập mục HAEI theo mô hình suy giảm HAEIM_Damped."
+        badges={
+          config && (
+            <Badge variant="blue" title="Ngưỡng hiệu suất trung bình suy giảm tối thiểu">
+              minae = {fmt(config.minae, 3)}
+            </Badge>
+          )
+        }
+        actions={
+          <>
+            <Link href="/config">
+              <Button variant="secondary">
+                <SlidersHorizontal size={15} /> Cấu hình
+              </Button>
+            </Link>
+            <Link href="/execution">
+              <Button>
+                <Activity size={15} /> Thực thi thuật toán
+              </Button>
+            </Link>
+          </>
+        }
       />
       <DemoBanner source={tx.source ?? null} />
 
-      {loading && <LoadingState label="Đang tải số liệu tổng quan…" />}
-      {error && <ErrorState message={error} onRetry={() => { tx.reload(); results.reload(); }} />}
+      {backendStatus === "unreachable" && (
+        <div className="mb-4 rounded-card border border-danger-line bg-danger-soft px-3.5 py-2.5 text-xs text-danger">
+          Backend đang mất kết nối — số liệu trên trang có thể chưa được cập nhật.{" "}
+          <Link href="/settings" className="font-semibold underline underline-offset-2">
+            Kiểm tra cài đặt kết nối
+          </Link>
+          .
+        </div>
+      )}
+
+      {loading && (
+        <div className="space-y-4">
+          <StatSkeleton count={4} />
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card><CardBody><ChartSkeleton /></CardBody></Card>
+            <Card><CardBody><ChartSkeleton /></CardBody></Card>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <ErrorState
+          title="Không tải được số liệu tổng quan"
+          message={error}
+          onRetry={() => {
+            tx.reload();
+            results.reload();
+          }}
+        />
+      )}
 
       {!loading && !error && (
-        <>
-          {/* Thẻ thống kê */}
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
+        <div className="space-y-4">
+          {/* Chỉ số chính — phân cấp rõ với hàng thống kê phụ bên dưới */}
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
             <StatCard
               label="Tổng số giao dịch"
               value={totalTransactions ?? "—"}
               icon={<Database size={16} />}
-            />
-            <StatCard
-              label="Số mục khác nhau"
-              value={totalItems ?? "—"}
-              icon={<Layers size={16} />}
+              hint="Luồng dữ liệu đầu vào"
+              emphasized
             />
             <StatCard
               label="Tập mục khám phá"
               value={totalItemsets ?? "—"}
               icon={<ListChecks size={16} />}
+              hint="Số tập mục đã ghi nhận"
+              emphasized
             />
             <StatCard
               label="Tập mục HAEI"
               value={totalHaei ?? "—"}
               accent="green"
               icon={<Trophy size={16} />}
+              hint="Đạt ngưỡng: Sdae ≥ minae"
+              emphasized
             />
             <StatCard
-              label="Ngưỡng minae"
-              value={fmt(config?.minae ?? DEMO_DASHBOARD.minae, 3)}
-              accent="amber"
-              icon={<Percent size={16} />}
-              hint="Hiệu suất TB tối thiểu"
-            />
-            <StatCard
-              label="Hệ số suy giảm f"
-              value={fmt(config?.f ?? DEMO_DASHBOARD.f, 2)}
-              accent="purple"
-              icon={<Percent size={16} />}
-              hint="Trọng số f^(Ltid−tid)"
-            />
-            <StatCard
-              label="Mã gd mới nhất Ltid"
-              value={latestTid ?? "—"}
-              icon={<Hash size={16} />}
-            />
-            <StatCard
-              label="Thời gian thực thi"
-              value={
-                demo ? `${DEMO_DASHBOARD.executionTimeMs} ms` : "—"
-              }
-              accent={demo ? "gray" : "blue"}
-              icon={<Timer size={16} />}
-              hint={demo ? "theo ví dụ trong tài liệu" : "chờ backend cung cấp"}
+              label="Số mục khác nhau"
+              value={totalItems ?? "—"}
+              accent="gray"
+              icon={<Layers size={16} />}
+              hint="Đvocab xuất hiện trong dữ liệu"
+              emphasized
             />
           </div>
 
+          <Card>
+            <div className="grid grid-cols-2 divide-line sm:grid-cols-4 sm:divide-x">
+              <StatInline
+                label="Ngưỡng minae"
+                value={minae !== null ? fmt(minae, 3) : "—"}
+                hint="Hiệu suất TB suy giảm tối thiểu"
+              />
+              <StatInline
+                label="Hệ số suy giảm f"
+                value={f !== null ? fmt(f, 2) : "—"}
+                hint="Trọng số f^(Ltid − tid)"
+              />
+              <StatInline
+                label="Mã giao dịch mới nhất (Ltid)"
+                value={latestTid ?? "—"}
+                hint="Giao dịch mới nhất đã nhận"
+              />
+              <StatInline
+                label="Thời gian thực thi"
+                value={demo ? `${DEMO_TIME} ms` : "—"}
+                hint={demo ? "Theo ví dụ trong tài liệu" : "Chờ backend cung cấp"}
+              />
+            </div>
+          </Card>
+
           {/* Biểu đồ */}
-          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-4 lg:grid-cols-2">
             <Card>
               <CardHeader
-                title="Số giao dịch theo mã TID"
-                description="Dữ liệu giao dịch đầu vào — mỗi cột là một giao dịch."
+                title="Tổng tiện ích giao dịch theo TID"
+                description="TU (Transaction Utility) của từng giao dịch đầu vào."
+                icon={<Hash size={15} />}
               />
               <CardBody>
-                {txByTid.length === 0 ? (
-                  <EmptyState title="Chưa có giao dịch" />
-                ) : (
-                  <BarChartSimple
-                    data={txByTid.map((t) => ({
-                      label: `T${t.tid}`,
-                      value: t.tu,
-                    }))}
-                    color="#2563eb"
-                    valueLabel="TU"
+                {txRows.length === 0 ? (
+                  <EmptyState
+                    title="Chưa có giao dịch"
+                    description="Thêm giao dịch tại trang Dữ liệu giao dịch để xem biểu đồ."
+                    action={
+                      <Link href="/transactions">
+                        <Button variant="secondary" size="sm">Mở Dữ liệu giao dịch</Button>
+                      </Link>
+                    }
                   />
+                ) : (
+                  <div className="h-60 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={txRows} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" vertical={false} />
+                        <XAxis
+                          dataKey="name"
+                          tick={{ fontSize: 11, fill: "#77879d" }}
+                          tickLine={false}
+                          axisLine={{ stroke: "#e6eaf0" }}
+                          interval={0}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 11, fill: "#77879d" }}
+                          tickLine={false}
+                          axisLine={false}
+                          width={52}
+                        />
+                        <Tooltip content={<ChartTip unit="TU" />} cursor={{ fill: "#eef4ff" }} />
+                        <Bar dataKey="value" name="TU" fill="#1d4ed8" radius={[4, 4, 0, 0]} maxBarSize={34} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 )}
               </CardBody>
             </Card>
 
             <Card>
               <CardHeader
-                title="Phân bố Sdae của tập mục"
-                description={
-                  demo
-                    ? "Sdae (hiệu suất TB suy giảm) theo tập mục, so với ngưỡng minae."
-                    : "Sdae theo tập mục từ backend."
+                title="Phân bố Sdae theo tập mục"
+                description="Sdae (hiệu suất TB suy giảm) so với ngưỡng minae — cột xanh là tập mục đạt HAEI."
+                icon={<Trophy size={15} />}
+                actions={
+                  <Link href="/results">
+                    <Button variant="ghost" size="sm">
+                      Xem kết quả <ArrowRight size={13} />
+                    </Button>
+                  </Link>
                 }
               />
               <CardBody>
                 {sdaeRows.length === 0 ? (
-                  <EmptyState title="Chưa có kết quả" />
+                  <EmptyState
+                    title="Chưa có kết quả"
+                    description="Chưa có tập mục nào được khai thác trong phiên hiện tại."
+                  />
                 ) : (
-                  <BarChartSimple
-                    data={sdaeRows.map((r) => ({
-                      label: fmtItemset(r.itemset),
-                      value: r.sdae,
-                      highlight: r.isHaei,
-                    }))}
-                    color="#059669"
-                    threshold={config?.minae ?? DEMO_DASHBOARD.minae}
-                    valueLabel="Sdae"
+                  <>
+                    <div className="h-60 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={sdaeRows} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" vertical={false} />
+                          <XAxis
+                            dataKey="name"
+                            tick={{ fontSize: 11, fill: "#77879d", fontFamily: "ui-monospace, monospace" }}
+                            tickLine={false}
+                            axisLine={{ stroke: "#e6eaf0" }}
+                            interval={0}
+                          />
+                          <YAxis
+                            tick={{ fontSize: 11, fill: "#77879d" }}
+                            tickLine={false}
+                            axisLine={false}
+                            width={52}
+                          />
+                          <Tooltip content={<ChartTip unit="Sdae" />} cursor={{ fill: "#eef4ff" }} />
+                          {minae !== null && (
+                            <ReferenceLine
+                              y={minae}
+                              stroke="#b45309"
+                              strokeDasharray="4 3"
+                              label={{ value: `minae ${fmt(minae, 3)}`, position: "insideTopRight", fontSize: 10, fill: "#b45309" }}
+                            />
+                          )}
+                          <Bar dataKey="value" name="Sdae" radius={[4, 4, 0, 0]} maxBarSize={40}>
+                            {sdaeRows.map((r) => (
+                              <Cell key={r.name} fill={r.isHaei ? "#047857" : "#94a3b8"} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-4 text-[11px] text-ink-3">
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="size-2.5 rounded-sm bg-success" /> Đạt HAEI
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="size-2.5 rounded-sm bg-slate-400" /> Chưa đạt
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="h-0.5 w-4 bg-warning" /> Ngưỡng minae
+                      </span>
+                    </div>
+                  </>
+                )}
+              </CardBody>
+            </Card>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+            {/* Thống kê theo pha — dữ liệu DEMO lấy từ demoData; backend chưa cung cấp */}
+            <Card>
+              <CardHeader
+                title="Thống kê theo ba pha"
+                description="Số tập mục vào/ra tại từng pha của pipeline."
+                actions={demo ? <Badge variant="purple">DEMO</Badge> : undefined}
+              />
+              <CardBody className="p-0">
+                {demo ? (
+                  <>
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[520px] text-sm">
+                        <thead>
+                          <tr className="border-b border-line text-left text-[11px] tracking-wide text-ink-3 uppercase">
+                            <th className="px-4 py-2.5 font-semibold">Pha</th>
+                            <th className="px-4 py-2.5 text-right font-semibold">Vào</th>
+                            <th className="px-4 py-2.5 text-right font-semibold">Ra</th>
+                            <th className="px-4 py-2.5 font-semibold">Ghi chú</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(
+                            [
+                              ["Construction", DEMO_DASHBOARD.phaseStats.construction],
+                              ["Restructure", DEMO_DASHBOARD.phaseStats.restructure],
+                              ["Expansion", DEMO_DASHBOARD.phaseStats.expansion],
+                            ] as const
+                          ).map(([name, s]) => (
+                            <tr key={name} className="border-b border-line last:border-b-0">
+                              <td className="px-4 py-3">
+                                <span className="font-medium text-ink">{name}</span>
+                              </td>
+                              <td className="px-4 py-3 text-right tabular-nums">{s.in}</td>
+                              <td className="px-4 py-3 text-right tabular-nums">{s.out}</td>
+                              <td className="px-4 py-3 text-xs text-ink-3">{s.note}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="border-t border-line px-4 py-2.5 text-[11px] text-ink-3">
+                      Số liệu theo ví dụ trong tài liệu — backend sẽ trả về thống kê pha thực tế.
+                    </p>
+                  </>
+                ) : (
+                  <EmptyState
+                    title="Chưa có thống kê theo pha"
+                    description="Backend chưa cung cấp endpoint thống kê số tập mục vào/ra tại từng pha (xem docs/API_CONTRACT.md)."
                   />
                 )}
               </CardBody>
             </Card>
 
+            {/* Thao tác tiếp theo */}
             <Card>
-              <CardHeader
-                title="Ứng viên vs HAEI"
-                description="So sánh số tập mục khám phá và số tập mục đạt ngưỡng."
-              />
-              <CardBody>
-                <BarChartSimple
-                  data={[
-                    { label: "Tập mục khám phá", value: totalItemsets ?? 0 },
-                    { label: "Tập mục HAEI", value: totalHaei ?? 0 },
-                  ]}
-                  color="#2563eb"
+              <CardHeader title="Tiếp tục làm việc" description="Các bước thường gặp trong luồng phân tích." />
+              <CardBody className="space-y-2 p-3">
+                <QuickLink
+                  href="/transactions"
+                  icon={<Database size={15} />}
+                  label="Quản lý dữ liệu giao dịch"
+                  hint="Thêm, nhập khẩu, kiểm tra đầu vào"
+                />
+                <QuickLink
+                  href="/config"
+                  icon={<Percent size={15} />}
+                  label="Cấu hình f và minae"
+                  hint="Thiết lập tham số trước khi chạy"
+                />
+                <QuickLink
+                  href="/execution"
+                  icon={<Activity size={15} />}
+                  label="Xem pipeline 3 pha"
+                  hint="Construction → Restructure → Expansion"
+                />
+                <QuickLink
+                  href="/dae-list"
+                  icon={<Layers size={15} />}
+                  label="Khám phá DAE-List"
+                  hint="Cấp cửa sổ và cấp giao dịch"
+                />
+                <QuickLink
+                  href="/history"
+                  icon={<Timer size={15} />}
+                  label="Lịch sử thực thi"
+                  hint="Các phiên đã chạy và cấu hình của chúng"
                 />
               </CardBody>
             </Card>
-
-            {demo && (
-              <Card>
-                <CardHeader
-                  title="Thống kê loại theo pha"
-                  description="Số tập mục vào/ra tại từng pha (theo ví dụ trong tài liệu)."
-                />
-                <CardBody>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-100 text-left text-xs text-slate-500">
-                        <th className="py-1.5">Pha</th>
-                        <th className="py-1.5 text-right">Vào</th>
-                        <th className="py-1.5 text-right">Ra</th>
-                        <th className="py-1.5">Ghi chú</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(
-                        [
-                          ["Construction", DEMO_DASHBOARD.phaseStats.construction],
-                          ["Restructure", DEMO_DASHBOARD.phaseStats.restructure],
-                          ["Expansion", DEMO_DASHBOARD.phaseStats.expansion],
-                        ] as const
-                      ).map(([name, s]) => (
-                        <tr key={name} className="border-b border-slate-50 last:border-b-0">
-                          <td className="py-2 font-medium text-slate-700">{name}</td>
-                          <td className="py-2 text-right tabular-nums">{s.in}</td>
-                          <td className="py-2 text-right tabular-nums">{s.out}</td>
-                          <td className="py-2 text-xs text-slate-500">{s.note}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </CardBody>
-              </Card>
-            )}
           </div>
-
-          {/* Lối đi nhanh */}
-          <div className="mt-4 flex flex-wrap gap-2">
-            <QuickLink href="/transactions" label="Quản lý giao dịch" />
-            <QuickLink href="/execution" label="Xem pipeline 3 pha" />
-            <QuickLink href="/dae-list" label="DAE-List Explorer" />
-            <QuickLink href="/results" label="Kết quả HAEI" />
-          </div>
-
-          {backendStatus === "unreachable" && (
-            <p className="mt-4 text-xs text-red-600">
-              Backend đang mất kết nối — số liệu có thể không cập nhật.
-            </p>
-          )}
-        </>
+        </div>
       )}
     </div>
   );
 }
 
-function QuickLink({ href, label }: { href: string; label: string }) {
+/** Thời gian thực thi ví dụ trong tài liệu (nguồn: demoData). */
+const DEMO_TIME = DEMO_DASHBOARD.executionTimeMs;
+
+function QuickLink({
+  href,
+  icon,
+  label,
+  hint,
+}: {
+  href: string;
+  icon: ReactNode;
+  label: string;
+  hint: string;
+}) {
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 shadow-sm hover:border-blue-300 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+      className="group flex items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 transition-colors hover:border-line hover:bg-surface-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand"
     >
-      {label}
-      <ArrowRight size={12} />
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand transition-colors group-hover:bg-brand group-hover:text-white">
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-medium text-ink">{label}</span>
+        <span className="block truncate text-[11px] text-ink-3">{hint}</span>
+      </span>
+      <ArrowRight size={15} className="shrink-0 text-ink-3 transition-transform group-hover:translate-x-0.5 group-hover:text-brand" />
     </Link>
   );
 }
 
-/** Biểu đồ cột đơn giản không cần thư viện — dữ liệu nhỏ, dễ đọc. */
-function BarChartSimple({
-  data,
-  color,
-  threshold,
-  valueLabel,
+/** Tooltip recharts theo phong cách thiết kế chung. */
+function ChartTip({
+  active,
+  payload,
+  label,
+  unit,
 }: {
-  data: { label: string; value: number; highlight?: boolean }[];
-  color: string;
-  threshold?: number;
-  valueLabel?: string;
+  active?: boolean;
+  payload?: { payload?: { value: number; isHaei?: boolean }; value?: number | string }[];
+  label?: string;
+  unit?: string;
 }) {
-  const max = Math.max(...data.map((d) => d.value), 0.0001);
+  if (!active || !payload || payload.length === 0) return null;
+  const p = payload[0];
+  const value = p.value ?? p.payload?.value;
   return (
-    <div className="space-y-1.5">
-      {threshold !== undefined && (
-        <p className="text-[11px] text-slate-400">
-          Đường ngưỡng minae = {fmt(threshold, 3)}
-        </p>
-      )}
-      {data.map((d) => (
-        <div key={d.label} className="flex items-center gap-2">
-          <span className="w-20 shrink-0 truncate text-right font-mono text-[11px] text-slate-500">
-            {d.label}
-          </span>
-          <div className="relative h-4 flex-1 rounded bg-slate-100">
-            <div
-              className="h-full rounded"
-              style={{
-                width: `${(d.value / max) * 100}%`,
-                backgroundColor: d.highlight === false ? "#f43f5e" : color,
-              }}
-            />
-            {threshold !== undefined && (
-              <div
-                className="absolute inset-y-0 w-px bg-amber-500"
-                style={{ left: `${(threshold / max) * 100}%` }}
-                aria-hidden
-              />
-            )}
-          </div>
-          <span className="w-16 shrink-0 font-mono text-[11px] tabular-nums text-slate-600">
-            {fmt(d.value, 4)}
-            {valueLabel && <span className="text-slate-300"> {valueLabel}</span>}
-          </span>
-        </div>
-      ))}
+    <div className="rounded-lg border border-line bg-surface px-3 py-2 shadow-pop">
+      <p className="text-[11px] font-semibold text-ink">{label}</p>
+      <p className="mt-0.5 text-xs text-ink-2 tabular-nums">
+        <span className="font-mono font-semibold text-brand">
+          {typeof value === "number" ? fmt(value, 4) : String(value ?? "—")}
+        </span>{" "}
+        <span className="text-ink-3">{unit}</span>
+      </p>
     </div>
   );
 }

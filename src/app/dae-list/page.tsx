@@ -2,16 +2,19 @@
 
 import { useAsync } from "@/hooks/useAsync";
 import { DemoBanner, PageHeader } from "@/components/shared/PageHeader";
-import { Input, Select } from "@/components/ui/Controls";
+import { Badge, StatusBadge } from "@/components/ui/Badge";
+import { Button, SearchField, Select } from "@/components/ui/Controls";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
-import { Dialog } from "@/components/ui/Dialog";
-import { Badge, StatusBadge } from "@/components/ui/Badge";
+import { Drawer } from "@/components/ui/Dialog";
+import { FilterBar, SegmentedControl } from "@/components/ui/FilterBar";
 import { ColumnHeader } from "@/components/ui/MetricTooltip";
-import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
+import { EmptyState, ErrorState, LoadingState, TableSkeleton } from "@/components/ui/States";
 import { getDaeNode, listDaeNodes } from "@/lib/services/daeListService";
 import type { DaeListEntry, DaeListNode, DaeNodeStatus } from "@/lib/types";
 import { cn, fmt, fmtItemset } from "@/lib/utils";
+import { ExternalLink, Layers, SearchX } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
@@ -24,6 +27,13 @@ const SORT_OPTIONS = [
   { value: "stdaeub", label: "STDAEUB" },
   { value: "entries", label: "Số entry" },
 ] as const;
+
+const STATUS_LABEL: Record<DaeNodeStatus | "all", string> = {
+  all: "Tất cả trạng thái",
+  candidate: "Ứng viên",
+  eliminated: "Bị loại",
+  haei: "HAEI",
+};
 
 export default function DaeListPage() {
   const [search, setSearch] = useState("");
@@ -49,6 +59,14 @@ export default function DaeListPage() {
     [search, status, sort],
   );
 
+  const hasFilter = search !== "" || status !== "all";
+  const resetFilters = () => {
+    setSearchInput("");
+    setSearch("");
+    setStatus("all");
+    setSort({ key: "itemset", order: "asc" });
+  };
+
   const columns: Column<DaeListNode>[] = useMemo(
     () => [
       {
@@ -56,80 +74,50 @@ export default function DaeListPage() {
         header: "Itemset",
         sortable: true,
         render: (n) => (
-          <span className="font-mono font-semibold text-slate-800">{fmtItemset(n.itemset)}</span>
+          <span className="font-mono font-semibold text-ink">{fmtItemset(n.itemset)}</span>
         ),
       },
       {
         key: "inv",
-        header: (
-          <ColumnHeader
-            label="Inv"
-            tooltip={{
-              description: "Tổng chi phí đầu tư của tập mục: Σ inv(i).",
-            }}
-          />
-        ),
+        header: <ColumnHeader label="Inv" metricKey="inv" />,
         sortable: true,
         align: "right",
         render: (n) => <span className="font-mono">{n.inv}</span>,
       },
       {
         key: "pi",
-        header: (
-          <ColumnHeader
-            label="PI"
-            tooltip={{
-              description:
-                "Chi phí đầu tư của tiền tố chung — dùng khi ghép hai DAE-List.",
-            }}
-          />
-        ),
+        header: <ColumnHeader label="PI" metricKey="pi" />,
         sortable: true,
         align: "right",
+        hideOnMobile: true,
         render: (n) => <span className="font-mono">{n.pi}</span>,
       },
       {
         key: "sdae",
-        header: (
-          <ColumnHeader
-            label="Sdae"
-            tooltip={{
-              formula: "Sdae = Σ ae·f^(Ltid−tid)",
-              description: "Tổng hiệu suất trung bình suy giảm của tập mục.",
-            }}
-          />
-        ),
+        header: <ColumnHeader label="Sdae" metricKey="sdae" />,
         sortable: true,
         align: "right",
-        render: (n) => <span className="font-mono text-blue-700">{fmt(n.sdae)}</span>,
+        render: (n) => <span className="font-mono font-medium text-brand">{fmt(n.sdae)}</span>,
       },
       {
         key: "smdaeub",
-        header: (
-          <ColumnHeader
-            label="SMDAEUB"
-            tooltip={{
-              description: "Tổng cận trên MDAEUB — dùng lọc ở pha Restructure.",
-            }}
-          />
-        ),
+        header: <ColumnHeader label="SMDAEUB" metricKey="smdaeub" />,
         sortable: true,
         align: "right",
+        hideOnMobile: true,
         render: (n) => <span className="font-mono">{fmt(n.smdaeub)}</span>,
       },
       {
         key: "stdaeub",
-        header: (
-          <ColumnHeader
-            label="STDAEUB"
-            tooltip={{
-              description: "Tổng cận trên TDAEUB — dùng cắt tỉa ở pha Expansion.",
-            }}
-          />
-        ),
+        header: <ColumnHeader label="STDAEUB" metricKey="stdaeub" />,
         sortable: true,
         align: "right",
-        render: (n) => <span className="font-mono">{fmt(n.stdaeub)}</span>,
+        hideOnMobile: true,
+        render: (n) => (
+          <span className={cn("font-mono", n.stdaeub === 0 && "text-ink-3")}>
+            {n.stdaeub !== undefined ? fmt(n.stdaeub) : "—"}
+          </span>
+        ),
       },
       {
         key: "entries",
@@ -151,51 +139,41 @@ export default function DaeListPage() {
     <div>
       <PageHeader
         title="DAE-List Explorer"
-        description="Trình khám phá cấu trúc DAE-List: cấp cửa sổ (tập mục) và cấp giao dịch (entry)."
+        description="Trình khám phá cấu trúc DAE-List: cấp cửa sổ (tập mục) và cấp giao dịch (entry). Nhấn một hàng để mở chi tiết."
+        badges={list.data ? <Badge variant="gray">{list.data.length} node</Badge> : undefined}
       />
       <DemoBanner source={list.source ?? null} />
 
       <Card>
-        <div className="flex flex-wrap items-end gap-2 border-b border-slate-100 p-3">
-          <form
-            className="flex items-end gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              setSearch(searchInput);
-            }}
-          >
-            <Input
-              label="Tìm tập mục"
-              placeholder="VD: bc hoặc {b,c}"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="w-52"
-              name="search"
-            />
-            <button
-              type="submit"
-              className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-            >
-              Tìm
-            </button>
-          </form>
+        <FilterBar
+          onReset={hasFilter ? resetFilters : undefined}
+          meta={list.data ? `${list.data.length} kết quả` : undefined}
+        >
+          <SearchField
+            label="Tìm tập mục"
+            placeholder="VD: bc hoặc {b,c}"
+            value={searchInput}
+            onChange={setSearchInput}
+            onSubmit={() => setSearch(searchInput.trim())}
+            className="w-full sm:w-72"
+          />
           <Select
-            label="Lọc trạng thái"
+            label="Trạng thái"
             value={status}
             onChange={(e) => setStatus(e.target.value as DaeNodeStatus | "all")}
-            className="w-40"
+            className="w-full sm:w-44"
             name="status"
           >
-            <option value="all">Tất cả</option>
-            <option value="candidate">Ứng viên</option>
-            <option value="eliminated">Bị loại</option>
-            <option value="haei">HAEI</option>
+            <option value="all">{STATUS_LABEL.all}</option>
+            <option value="candidate">{STATUS_LABEL.candidate}</option>
+            <option value="eliminated">{STATUS_LABEL.eliminated}</option>
+            <option value="haei">{STATUS_LABEL.haei}</option>
           </Select>
           <Select
             label="Sắp xếp theo"
             value={sort.key}
             onChange={(e) => setSort((s) => ({ ...s, key: e.target.value }))}
-            className="w-44"
+            className="w-full sm:w-44"
             name="sort"
           >
             {SORT_OPTIONS.map((o) => (
@@ -207,19 +185,21 @@ export default function DaeListPage() {
           <Select
             label="Thứ tự"
             value={sort.order}
-            onChange={(e) =>
-              setSort((s) => ({ ...s, order: e.target.value as "asc" | "desc" }))
-            }
-            className="w-28"
+            onChange={(e) => setSort((s) => ({ ...s, order: e.target.value as "asc" | "desc" }))}
+            className="w-full sm:w-32"
             name="order"
           >
             <option value="asc">Tăng dần</option>
             <option value="desc">Giảm dần</option>
           </Select>
-        </div>
+        </FilterBar>
 
-        {list.loading && <LoadingState />}
-        {list.error && <ErrorState message={list.error} onRetry={list.reload} />}
+        {list.loading && <TableSkeleton rows={8} cols={7} />}
+        {list.error && (
+          <div className="p-4">
+            <ErrorState message={list.error} onRetry={list.reload} />
+          </div>
+        )}
         {!list.loading && !list.error && list.data && (
           <DataTable
             columns={columns}
@@ -233,23 +213,39 @@ export default function DaeListPage() {
                 order: s.key === key && s.order === "asc" ? "desc" : "asc",
               }))
             }
-            emptyMessage="Không có node DAE-List nào khớp bộ lọc. Hãy chạy thuật toán trước."
+            maxHeight="65vh"
+            caption="Danh sách node DAE-List"
+            emptyMessage="Không có node DAE-List nào khớp bộ lọc."
+            emptyAction={
+              hasFilter ? (
+                <Button variant="secondary" size="sm" onClick={resetFilters}>
+                  <SearchX size={13} /> Xóa bộ lọc
+                </Button>
+              ) : (
+                <Link href="/execution">
+                  <Button variant="secondary" size="sm">
+                    <Layers size={13} /> Đi tới trang Thực thi
+                  </Button>
+                </Link>
+              )
+            }
           />
+        )}
+        {!list.loading && !list.error && list.data && list.data.length > 0 && (
+          <p className="border-t border-line px-4 py-2.5 text-[11px] text-ink-3">
+            Nhấn một hàng để xem chi tiết node và danh sách entry cấp giao dịch.
+          </p>
         )}
       </Card>
 
-      <DaeNodeDialog itemset={selected} onClose={() => setSelected(null)} />
+      <DaeNodeDrawer itemset={selected} onClose={() => setSelected(null)} />
     </div>
   );
 }
 
-function DaeNodeDialog({
-  itemset,
-  onClose,
-}: {
-  itemset: string[] | null;
-  onClose: () => void;
-}) {
+/* ---------------- Chi tiết node (Drawer) ---------------- */
+
+function DaeNodeDrawer({ itemset, onClose }: { itemset: string[] | null; onClose: () => void }) {
   const router = useRouter();
   const detail = useAsync(
     (signal) => getDaeNode(itemset!, signal),
@@ -258,21 +254,25 @@ function DaeNodeDialog({
   );
 
   return (
-    <Dialog
+    <Drawer
       open={itemset !== null}
       title={itemset ? `DAE-List ${fmtItemset(itemset)}` : ""}
+      description="Cấp cửa sổ (toàn cục) và các entry cấp giao dịch."
       onClose={onClose}
-      width="max-w-3xl"
+      size="max-w-3xl"
     >
       {detail.loading && <LoadingState />}
-      {detail.error && <ErrorState message={detail.error} />}
+      {detail.error && <ErrorState message={detail.error} onRetry={detail.reload} />}
       {detail.data && (
-        <DaeNodeDetail node={detail.data} onOpenTransaction={(tid) => {
-          onClose();
-          router.push(`/transactions?tid=${tid}`);
-        }} />
+        <DaeNodeDetail
+          node={detail.data}
+          onOpenTransaction={(tid) => {
+            onClose();
+            router.push(`/transactions?tid=${tid}`);
+          }}
+        />
       )}
-    </Dialog>
+    </Drawer>
   );
 }
 
@@ -297,28 +297,21 @@ function DaeNodeDetail({
         <button
           type="button"
           onClick={() => onOpenTransaction(e.tid)}
-          className="rounded font-mono text-blue-600 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          className="inline-flex items-center gap-1 rounded font-mono text-brand underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand"
           title="Xem giao dịch nguồn"
         >
           T{e.tid}
+          <ExternalLink size={11} />
         </button>
       ),
     },
     { key: "u", header: "u", align: "right", render: (e) => e.u },
     {
       key: "value",
-      header: (
-        <ColumnHeader
-          label="ae / dae"
-          tooltip={{
-            description:
-              "Ở pha Construction lưu ae thô (u/Inv); ở pha Restructure lưu dae = ae × f^(Ltid−tid).",
-          }}
-        />
-      ),
+      header: <ColumnHeader label="ae / dae" metricKey="dae" />,
       align: "right",
       render: (e) => (
-        <span className={cn("font-mono", e.phase === "restructure" ? "text-blue-700" : "text-slate-600")}>
+        <span className={cn("font-mono", e.phase === "restructure" ? "text-brand" : "text-ink-2")}>
           {fmt(e.value)}
         </span>
       ),
@@ -334,74 +327,50 @@ function DaeNodeDetail({
     },
     {
       key: "maxru",
-      header: (
-        <ColumnHeader
-          label="maxru"
-          tooltip={{ description: "Tiện ích còn lại lớn nhất (maxRU) trong giao dịch." }}
-        />
-      ),
+      header: <ColumnHeader label="maxru" metricKey="maxru" />,
       align: "right",
+      hideOnMobile: true,
       render: (e) => <span className="font-mono">{e.maxru !== undefined ? fmt(e.maxru) : "—"}</span>,
     },
     {
       key: "minInv",
-      header: (
-        <ColumnHeader
-          label="minInv"
-          tooltip={{ description: "Chi phí đầu tư nhỏ nhất còn lại trong giao dịch." }}
-        />
-      ),
+      header: <ColumnHeader label="minInv" metricKey="minInv" />,
       align: "right",
-      render: (e) => <span className="font-mono">{e.minInv !== undefined ? fmt(e.minInv) : "—"}</span>,
+      hideOnMobile: true,
+      render: (e) => (
+        <span className="font-mono">{e.minInv !== undefined ? fmt(e.minInv) : "—"}</span>
+      ),
     },
     {
       key: "pu",
-      header: (
-        <ColumnHeader
-          label="PU"
-          tooltip={{ description: "Tiện ích của tiền tố chung (dùng khi ghép)." }}
-        />
-      ),
+      header: <ColumnHeader label="PU" metricKey="pu" />,
       align: "right",
+      hideOnMobile: true,
       render: (e) => <span className="font-mono">{e.pu !== undefined ? fmt(e.pu) : "—"}</span>,
     },
     {
       key: "mdaeub",
-      header: (
-        <ColumnHeader
-          label="MDAEUB"
-          tooltip={{
-            description: "Cận trên suy giảm cực đại = MAEUB thô × trọng số suy giảm.",
-          }}
-        />
-      ),
+      header: <ColumnHeader label="MDAEUB" metricKey="mdaeub" />,
       align: "right",
-      render: (e) => <span className="font-mono">{e.mdaeub !== undefined ? fmt(e.mdaeub) : "—"}</span>,
+      hideOnMobile: true,
+      render: (e) => (
+        <span className="font-mono">{e.mdaeub !== undefined ? fmt(e.mdaeub) : "—"}</span>
+      ),
     },
     {
       key: "k",
-      header: (
-        <ColumnHeader
-          label="k"
-          tooltip={{ description: "Số mục còn lại phía sau tập mục trong giao dịch." }}
-        />
-      ),
+      header: <ColumnHeader label="k" metricKey="k" />,
       align: "right",
+      hideOnMobile: true,
       render: (e) => <span className="font-mono">{e.k !== undefined ? e.k : "—"}</span>,
     },
     ...(hasTdaeub
       ? [
           {
             key: "tdaeub",
-            header: (
-              <ColumnHeader
-                label="TDAEUB"
-                tooltip={{
-                  description: "Cận trên TDAEUB cấp giao dịch (tính ở bước duyệt ngược).",
-                }}
-              />
-            ),
+            header: <ColumnHeader label="TDAEUB" metricKey="tdaeub" />,
             align: "right" as const,
+            hideOnMobile: true,
             render: (e: DaeListEntry) => (
               <span className="font-mono">{e.tdaeub !== undefined ? fmt(e.tdaeub) : "—"}</span>
             ),
@@ -411,50 +380,57 @@ function DaeNodeDetail({
   ];
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Cấp cửa sổ */}
-      <div className="rounded-lg border border-slate-100 p-3">
+      <section className="rounded-lg border border-line bg-surface-2/60 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs font-semibold text-slate-500">Cấp cửa sổ (toàn cục)</p>
+          <p className="text-[11px] font-semibold tracking-wider text-ink-3 uppercase">
+            Cấp cửa sổ (toàn cục)
+          </p>
           <StatusBadge status={node.status} />
         </div>
-        <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm sm:grid-cols-5">
+        <dl className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-5">
           <WinItem label="Inv" value={String(node.inv)} />
           <WinItem label="PI" value={String(node.pi)} />
-          <WinItem label="Sdae" value={fmt(node.sdae)} highlight />
-          <WinItem label="SMDAEUB" value={fmt(node.smdaeub)} />
-          <WinItem label="STDAEUB" value={fmt(node.stdaeub)} />
+          <WinItem label="Sdae" value={fmt(node.sdae)} highlight metricKey="sdae" />
+          <WinItem label="SMDAEUB" value={fmt(node.smdaeub)} metricKey="smdaeub" />
+          <WinItem label="STDAEUB" value={node.stdaeub !== undefined ? fmt(node.stdaeub) : "—"} metricKey="stdaeub" />
         </dl>
-      </div>
+      </section>
 
       {/* Cấp giao dịch */}
-      <div>
-        <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs font-semibold text-slate-500">
-            Cấp giao dịch ({node.entries.length} entry)
+      <section>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[11px] font-semibold tracking-wider text-ink-3 uppercase">
+            Cấp giao dịch · {node.entries.length} entry
           </p>
-          <Select
+          <SegmentedControl
+            ariaLabel="Lọc entry theo pha"
             value={phaseFilter}
-            onChange={(e) => setPhaseFilter(e.target.value as typeof phaseFilter)}
-            className="h-8 w-48 text-xs"
-            name="phaseFilter"
-            aria-label="Lọc theo pha"
-          >
-            <option value="all">Tất cả pha</option>
-            <option value="construction">Construction (thô)</option>
-            <option value="restructure">Restructure (suy giảm)</option>
-          </Select>
+            onChange={setPhaseFilter}
+            options={[
+              { value: "all", label: "Tất cả" },
+              { value: "construction", label: "Construction" },
+              { value: "restructure", label: "Restructure" },
+            ]}
+          />
         </div>
         {entries.length === 0 ? (
-          <EmptyState title="Không có entry nào" />
+          <EmptyState title="Không có entry nào ở pha này" />
         ) : (
-          <DataTable columns={columns} rows={entries} rowKey={(e) => e.tid} dense />
+          <DataTable
+            columns={columns}
+            rows={entries}
+            rowKey={(e) => e.tid}
+            dense
+            caption="Entry cấp giao dịch của node"
+          />
         )}
-      </div>
+      </section>
 
-      <p className="text-[11px] text-slate-400">
-        Nhấn vào mã TID để xem giao dịch nguồn. Các ô “—” là giá trị backend chưa cung cấp
-        (tài liệu ví dụ không nêu đầy đủ cho từng entry).
+      <p className="text-[11px] leading-relaxed text-ink-3">
+        Nhấn mã TID để mở giao dịch nguồn. Ô “—” là giá trị backend chưa cung cấp cho entry đó
+        (tài liệu ví dụ không nêu đầy đủ).
       </p>
     </div>
   );
@@ -464,18 +440,23 @@ function WinItem({
   label,
   value,
   highlight,
+  metricKey,
 }: {
   label: string;
   value: string;
   highlight?: boolean;
+  metricKey?: Parameters<typeof ColumnHeader>[0]["metricKey"];
 }) {
   return (
     <div>
-      <dt className="text-[11px] text-slate-400">{label}</dt>
+      <dt className="flex items-center gap-1 text-[11px] text-ink-3">
+        {label}
+        {metricKey && <ColumnHeader label="" metricKey={metricKey} />}
+      </dt>
       <dd
         className={cn(
           "font-mono",
-          highlight ? "text-base font-bold text-blue-700" : "text-slate-800",
+          highlight ? "text-lg font-bold text-brand" : "text-ink",
         )}
       >
         {value}

@@ -19,6 +19,10 @@ export function validateConfig(cfg: AlgorithmConfig): string[] {
     errors.push("Bảng investmentTable không được để trống.");
   }
   for (const [item, v] of Object.entries(cfg.investmentTable)) {
+    if (!item.trim()) {
+      errors.push("Tên mục trong investmentTable không được để trống.");
+      continue;
+    }
     if (!Number.isFinite(v) || v <= 0) {
       errors.push(`inv("${item}") phải là số dương.`);
     }
