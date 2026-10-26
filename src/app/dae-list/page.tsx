@@ -59,12 +59,14 @@ export default function DaeListPage() {
     [search, status, sort],
   );
 
-  const hasFilter = search !== "" || status !== "all";
+  const DEFAULT_SORT = { key: "itemset", order: "asc" } as const;
+  const hasFilter =
+    search !== "" || status !== "all" || sort.key !== DEFAULT_SORT.key || sort.order !== DEFAULT_SORT.order;
   const resetFilters = () => {
     setSearchInput("");
     setSearch("");
     setStatus("all");
-    setSort({ key: "itemset", order: "asc" });
+    setSort({ key: DEFAULT_SORT.key, order: DEFAULT_SORT.order });
   };
 
   const columns: Column<DaeListNode>[] = useMemo(
@@ -79,38 +81,43 @@ export default function DaeListPage() {
       },
       {
         key: "inv",
-        header: <ColumnHeader label="Inv" metricKey="inv" />,
+        header: "Inv",
         sortable: true,
+        tooltip: <ColumnHeader label="" metricKey="inv" />,
         align: "right",
         render: (n) => <span className="font-mono">{n.inv}</span>,
       },
       {
         key: "pi",
-        header: <ColumnHeader label="PI" metricKey="pi" />,
+        header: "PI",
         sortable: true,
+        tooltip: <ColumnHeader label="" metricKey="pi" />,
         align: "right",
         hideOnMobile: true,
         render: (n) => <span className="font-mono">{n.pi}</span>,
       },
       {
         key: "sdae",
-        header: <ColumnHeader label="Sdae" metricKey="sdae" />,
+        header: "Sdae",
         sortable: true,
+        tooltip: <ColumnHeader label="" metricKey="sdae" />,
         align: "right",
         render: (n) => <span className="font-mono font-medium text-brand">{fmt(n.sdae)}</span>,
       },
       {
         key: "smdaeub",
-        header: <ColumnHeader label="SMDAEUB" metricKey="smdaeub" />,
+        header: "SMDAEUB",
         sortable: true,
+        tooltip: <ColumnHeader label="" metricKey="smdaeub" />,
         align: "right",
         hideOnMobile: true,
         render: (n) => <span className="font-mono">{fmt(n.smdaeub)}</span>,
       },
       {
         key: "stdaeub",
-        header: <ColumnHeader label="STDAEUB" metricKey="stdaeub" />,
+        header: "STDAEUB",
         sortable: true,
+        tooltip: <ColumnHeader label="" metricKey="stdaeub" />,
         align: "right",
         hideOnMobile: true,
         render: (n) => (
@@ -153,7 +160,11 @@ export default function DaeListPage() {
             label="Tìm tập mục"
             placeholder="VD: bc hoặc {b,c}"
             value={searchInput}
-            onChange={setSearchInput}
+            onChange={(v) => {
+              setSearchInput(v);
+              // Bấm ✕ xóa cả bộ lọc đã áp dụng (không chỉ ô nhập)
+              if (!v) setSearch("");
+            }}
             onSubmit={() => setSearch(searchInput.trim())}
             className="w-full sm:w-72"
           />

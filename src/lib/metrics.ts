@@ -148,7 +148,7 @@ export type MetricKey = keyof typeof RAW_METRICS;
  */
 export const METRICS: Record<MetricKey, MetricDef> = RAW_METRICS;
 
-/** Lấy định nghĩa chỉ số (an toàn nếu truyền nhầm khóa lạ). */
+/** Lấy định nghĩa chỉ số (an toàn nếu truyền nhầm khóa lạ ngoài biên dịch). */
 export function metric(key: MetricKey): MetricDef {
-  return METRICS[key];
+  return METRICS[key] ?? { term: String(key), description: "" };
 }

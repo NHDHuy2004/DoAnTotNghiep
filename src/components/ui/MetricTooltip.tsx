@@ -181,7 +181,8 @@ export function ColumnHeader({
       {label}
       <MetricTooltip
         metricKey={metricKey}
-        term={label}
+        // label rỗng (dùng riêng icon ?) → lấy term từ METRICS
+        term={label || undefined}
         formula={tooltip?.formula}
         description={tooltip?.description}
       />

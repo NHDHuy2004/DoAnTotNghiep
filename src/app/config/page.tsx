@@ -39,7 +39,6 @@ export default function ConfigPage() {
   const toast = useToast();
 
   const [draft, setDraft] = useState<AlgorithmConfig | null>(null);
-  const [syncedConfig, setSyncedConfig] = useState<AlgorithmConfig | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [showFieldErrors, setShowFieldErrors] = useState(false);
   const [nameConflict, setNameConflict] = useState<string | null>(null);
@@ -48,8 +47,7 @@ export default function ConfigPage() {
   const [running, setRunning] = useState(false);
 
   // Khởi tạo bản nháp từ cấu hình vừa tải (điều chỉnh state ngay trong render).
-  if (config !== null && config !== syncedConfig && draft === null) {
-    setSyncedConfig(config);
+  if (config !== null && draft === null) {
     setDraft(structuredClone(config));
   }
 
@@ -68,7 +66,8 @@ export default function ConfigPage() {
         .sort()
         .map((item) => ({
           item,
-          cu: draft.unitCostTable[item] ?? 0,
+          // unitCostTable là tùy chọn theo hợp đồng API
+          cu: draft.unitCostTable?.[item] ?? 0,
           inv: draft.investmentTable[item],
         }))
     : [];
@@ -103,8 +102,13 @@ export default function ConfigPage() {
     if (patch.item !== undefined) {
       const newName = patch.item.trim();
       const conflict = items.some((it, i) => i !== idx && it.item === newName);
-      if (newName && conflict) {
-        setNameConflict(`Mục "${newName}" đã tồn tại — không thể đổi tên thành tên trùng.`);
+      // Không có ngoại lệ cho tên rỗng: hai dòng cùng trống sẽ ghi đè nhau trên khoá ""
+      if (conflict) {
+        setNameConflict(
+          newName
+            ? `Mục "${newName}" đã tồn tại — không thể đổi tên thành tên trùng.`
+            : "Chỉ được để trống tên một dòng — dòng khác đang trống.",
+        );
         return;
       }
       setNameConflict(null);
@@ -265,8 +269,10 @@ export default function ConfigPage() {
                   step="0.01"
                   min={0.01}
                   max={0.99}
-                  value={draft.f}
-                  onChange={(e) => updateDraft({ f: Number(e.target.value) })}
+                  value={Number.isFinite(draft.f) ? draft.f : ""}
+                  onChange={(e) =>
+                    updateDraft({ f: e.target.value === "" ? Number.NaN : Number(e.target.value) })
+                  }
                   error={fieldError("f")}
                   hint={
                     <>
@@ -287,8 +293,10 @@ export default function ConfigPage() {
                   type="number"
                   step="0.01"
                   min={0}
-                  value={draft.minae}
-                  onChange={(e) => updateDraft({ minae: Number(e.target.value) })}
+                  value={Number.isFinite(draft.minae) ? draft.minae : ""}
+                  onChange={(e) =>
+                    updateDraft({ minae: e.target.value === "" ? Number.NaN : Number(e.target.value) })
+                  }
                   error={fieldError("minae")}
                   hint="Tập mục có Sdae ≥ minae được công nhận là HAEI. Ví dụ trong tài liệu: 0.2"
                   name="minae"
@@ -380,8 +388,10 @@ export default function ConfigPage() {
                         <input
                           type="number"
                           aria-label={`cu của mục ${it.item || idx + 1}`}
-                          value={it.cu}
-                          onChange={(e) => updateItem(idx, { cu: Number(e.target.value) })}
+                          value={Number.isFinite(it.cu) ? it.cu : ""}
+                          onChange={(e) =>
+                            updateItem(idx, { cu: e.target.value === "" ? Number.NaN : Number(e.target.value) })
+                          }
                           className="w-24 rounded-md border border-line-2 bg-surface px-2 py-1.5 text-right text-sm text-ink transition-colors focus:border-brand focus:ring-2 focus:ring-brand/15 focus:outline-none"
                         />
                       </td>
@@ -390,8 +400,10 @@ export default function ConfigPage() {
                           type="number"
                           aria-label={`inv của mục ${it.item || idx + 1}`}
                           aria-invalid={!!invError}
-                          value={it.inv}
-                          onChange={(e) => updateItem(idx, { inv: Number(e.target.value) })}
+                          value={Number.isFinite(it.inv) ? it.inv : ""}
+                          onChange={(e) =>
+                            updateItem(idx, { inv: e.target.value === "" ? Number.NaN : Number(e.target.value) })
+                          }
                           className={cn(
                             "w-24 rounded-md border bg-surface px-2 py-1.5 text-right text-sm text-ink transition-colors focus:outline-none focus:ring-2",
                             invError

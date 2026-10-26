@@ -82,7 +82,7 @@ export function Tabs({
             role="tab"
             id={`tab-${t.key}`}
             aria-selected={active}
-            aria-controls={`tabpanel-${t.key}`}
+            aria-controls={active ? `tabpanel-${t.key}` : undefined}
             tabIndex={active ? 0 : -1}
             onClick={() => onChange(t.key)}
             className={cn(

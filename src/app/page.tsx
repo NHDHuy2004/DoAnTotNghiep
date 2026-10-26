@@ -57,6 +57,13 @@ export default function DashboardPage() {
     ? results.data.items.filter((r) => r.isHaei).length
     : null;
 
+  // Dashboard chỉ tải trang đầu (tối đa 100 bản ghi) — nếu ít hơn total thì
+  // các số liệu đếm được là theo phạm vi tải về, phải ghi rõ gợi ý.
+  const loadedTx = tx.data?.items.length ?? 0;
+  const loadedResults = results.data?.items.length ?? 0;
+  const txPartial = !!tx.data && loadedTx < tx.data.total;
+  const resultsPartial = !!results.data && loadedResults < results.data.total;
+
   const latestTid = tx.data?.items.length
     ? Math.max(...tx.data.items.map((t) => t.tid))
     : null;
@@ -161,7 +168,11 @@ export default function DashboardPage() {
               value={totalHaei ?? "—"}
               accent="green"
               icon={<Trophy size={16} />}
-              hint="Đạt ngưỡng: Sdae ≥ minae"
+              hint={
+                resultsPartial
+                  ? `Đạt ngưỡng: Sdae ≥ minae · đếm trong ${loadedResults} tập mục tải về`
+                  : "Đạt ngưỡng: Sdae ≥ minae"
+              }
               emphasized
             />
             <StatCard
@@ -169,7 +180,11 @@ export default function DashboardPage() {
               value={totalItems ?? "—"}
               accent="gray"
               icon={<Layers size={16} />}
-              hint="Đvocab xuất hiện trong dữ liệu"
+              hint={
+                txPartial
+                  ? `Giá trị khác nhau trong ${loadedTx} giao dịch tải về`
+                  : "Giá trị xuất hiện trong dữ liệu"
+              }
               emphasized
             />
           </div>
@@ -204,7 +219,11 @@ export default function DashboardPage() {
             <Card>
               <CardHeader
                 title="Tổng tiện ích giao dịch theo TID"
-                description="TU (Transaction Utility) của từng giao dịch đầu vào."
+                description={
+                  txPartial
+                    ? `TU (Transaction Utility) của ${loadedTx} giao dịch tải về (trang đầu).`
+                    : "TU (Transaction Utility) của từng giao dịch đầu vào."
+                }
                 icon={<Hash size={15} />}
               />
               <CardBody>
@@ -248,7 +267,11 @@ export default function DashboardPage() {
             <Card>
               <CardHeader
                 title="Phân bố Sdae theo tập mục"
-                description="Sdae (hiệu suất TB suy giảm) so với ngưỡng minae — cột xanh là tập mục đạt HAEI."
+                description={
+                  resultsPartial
+                    ? `Sdae so với ngưỡng minae — cột xanh là tập mục đạt HAEI; hiển thị ${loadedResults} tập mục tải về (trang đầu).`
+                    : "Sdae (hiệu suất TB suy giảm) so với ngưỡng minae — cột xanh là tập mục đạt HAEI."
+                }
                 icon={<Trophy size={15} />}
                 actions={
                   <Link href="/results">

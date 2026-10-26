@@ -25,21 +25,22 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   // Hủy từ bên ngoài (unmount) + timeout nội bộ
+  const onExternalAbort = () => controller.abort();
   if (signal) {
     if (signal.aborted) controller.abort();
-    else signal.addEventListener("abort", () => controller.abort(), { once: true });
+    else signal.addEventListener("abort", onExternalAbort);
   }
+
+  const requestHeaders = new Headers(headers);
+  requestHeaders.set("Accept", "application/json");
+  if (body !== undefined) requestHeaders.set("Content-Type", "application/json");
 
   const url = `${baseUrl}${path}`;
   try {
     const res = await fetch(url, {
       ...rest,
       signal: controller.signal,
-      headers: {
-        Accept: "application/json",
-        ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
-        ...(headers ?? {}),
-      },
+      headers: requestHeaders,
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
 
@@ -59,7 +60,18 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     }
 
     if (res.status === 204) return undefined as T;
-    return (await res.json()) as T;
+    const text = await res.text();
+    // 2xx không có nội dung → không phải lỗi kết nối, trả về rỗng
+    if (!text) return undefined as T;
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      throw new ApiError(
+        `Backend trả về dữ liệu không phải JSON (${res.status} ${res.statusText}).`,
+        res.status,
+        path,
+      );
+    }
   } catch (err) {
     if (err instanceof ApiError) throw err;
     const msg =
@@ -69,6 +81,8 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     throw new ApiError(msg, undefined, path);
   } finally {
     clearTimeout(timer);
+    // Không gắn listener vào signal của người gọi → tránh rò rỉ khi signal sống lâu
+    signal?.removeEventListener("abort", onExternalAbort);
   }
 }
 

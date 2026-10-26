@@ -81,7 +81,9 @@ export function StatusBadge({ status, withDot = false }: { status: StatusKey; wi
     checking: { label: "Đang kiểm tra", variant: "gray" },
     demo: { label: "DEMO", variant: "purple" },
   };
-  const cfg = map[status];
+  // Backend có thể trả trạng thái ngoài bảng này ("cancelled", "timeout"…) —
+  // không được crash trang vì một khóa lạ.
+  const cfg = map[status] ?? { label: String(status), variant: "gray" as BadgeVariant };
   return (
     <Badge variant={cfg.variant} title={cfg.title}>
       {withDot && <Dot />}

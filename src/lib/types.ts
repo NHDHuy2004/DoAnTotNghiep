@@ -103,9 +103,11 @@ export interface ConstructionTrace {
 
 export interface RestructureEntry {
   tid: number;
-  u: number;
+  /** Utility của giao dịch — hợp đồng không bắt buộc, có thể vắng. */
+  u?: number;
   weight: number;   // f^(Ltid - tid)
-  aeRaw: number;
+  /** ae thô từ pha Construction — hợp đồng không gửi, có thể vắng. */
+  aeRaw?: number;
   dae: number;      // aeRaw × weight
   mdaeub?: number;
   maxru?: number;
@@ -128,7 +130,8 @@ export interface RestructureNode {
 
 export interface RestructureTrace {
   ltid: number;
-  f: number;
+  /** Hệ số f (demo/backend cũ) — hợp đồng chỉ gửi weight theo từng entry. */
+  f?: number;
   minae: number;
   /** Các node bị loại (SMDAEUB < minae). */
   removed: RestructureNode[];
@@ -173,8 +176,11 @@ export type DaeNodeStatus = "candidate" | "eliminated" | "haei";
 export interface DaeListEntry {
   tid: number;
   u: number;
-  /** ae (thô) hoặc dae (đã suy giảm) tùy phase. */
-  value: number;
+  /**
+   * ae (thô) hoặc dae (đã suy giảm) tùy phase.
+   * Hợp đồng API dùng tên `dae` — services chuẩn hóa về `value`; thiếu → "—".
+   */
+  value?: number;
   phase: "construction" | "restructure";
   maxru?: number;
   minInv?: number;

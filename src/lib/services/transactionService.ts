@@ -19,11 +19,12 @@ export interface TransactionQuery {
 }
 
 function filterDemo(q: TransactionQuery): Transaction[] {
-  const search = (q.search ?? "").trim().toLowerCase();
+  const raw = (q.search ?? "").trim().toLowerCase();
+  // UI hiển thị TID dạng "T3" → cho phép gõ kèm (hoặc không kèm) chữ T
+  const search = /^t\d+$/.test(raw) ? raw.slice(1) : raw;
   return DEMO_TRANSACTIONS.filter((t) => {
     if (q.processed !== undefined && t.processed !== q.processed) return false;
     if (!search) return true;
-    if (String(t.tid) === search) return true;
     if (String(t.tid).includes(search)) return true;
     return t.items.some((it) => it.item.toLowerCase().includes(search));
   });
@@ -56,7 +57,8 @@ export async function listTransactions(
     pageSize: String(pageSize),
   });
   if (q.search) params.set("search", q.search);
-  if (q.processed !== undefined) params.set("processed", String(q.processed));
+  // Hợp đồng API (docs/API_CONTRACT.md): tham số `status`
+  if (q.processed !== undefined) params.set("status", q.processed ? "processed" : "unprocessed");
 
   const data = await apiGet<Paginated<Transaction>>(
     `${ENDPOINTS.transactions}?${params.toString()}`,
@@ -83,11 +85,7 @@ export async function createTransaction(
 ): Promise<ServiceResult<Transaction>> {
   if (isDemoMode()) {
     // DEMO: gán tid mới trong phiên làm việc, không lưu bền vững.
-    const nextTid = Math.max(...DEMO_TRANSACTIONS.map((t) => t.tid), 0) + 1;
-    const tu = input.items.reduce((s, i) => s + i.utility, 0);
-    const t: Transaction = { tid: nextTid, items: input.items, tu, processed: false };
-    DEMO_TRANSACTIONS.push(t);
-    return { source: "demo", data: t };
+    return { source: "demo", data: createTransactionSync(input) };
   }
   const data = await apiPost<Transaction>(ENDPOINTS.transactions, input);
   return { source: "api", data };
@@ -113,8 +111,11 @@ export async function importTransactions(
           }
         });
       } else {
-        const lines = content.split(/\r?\n/).filter((l) => l.trim());
-        lines.forEach((line, i) => {
+        // Duyệt mảng GỐC (không lọc dòng trống) để số dòng báo lỗi khớp file của người dùng
+        content.split(/\r?\n/).forEach((line, i) => {
+          if (!line.trim()) return;
+          // Bỏ qua dòng tiêu đề (item,quantity,utility)
+          if (i === 0 && /^\s*item\s*,\s*quantity\s*,\s*utility\s*$/i.test(line)) return;
           const parsed = parseCsvLine(line);
           if (!parsed) {
             errors.push({ line: i + 1, message: "Sai định dạng. Cần: item,quantity,utility" });

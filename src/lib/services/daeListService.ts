@@ -30,6 +30,21 @@ function compare(a: DaeListNode, b: DaeListNode, sort: DaeListQuery["sort"]): nu
   }
 }
 
+/**
+ * Chuẩn hóa response theo hợp đồng API về kiểu UI:
+ * `DaeListEntry.dae` (hợp đồng) → `value` (UI), entries có thể vắng.
+ */
+type WireEntry = DaeListEntry & { dae?: number };
+
+function normalizeEntry(e: WireEntry): DaeListEntry {
+  const { dae, value, ...rest } = e;
+  return { ...rest, value: value ?? dae };
+}
+
+function normalizeNode(n: DaeListNode & { entries?: WireEntry[] }): DaeListNode {
+  return { ...n, entries: (n.entries ?? []).map(normalizeEntry) };
+}
+
 export async function listDaeNodes(
   q: DaeListQuery,
   signal?: AbortSignal,
@@ -56,7 +71,7 @@ export async function listDaeNodes(
     `${ENDPOINTS.daeList}?${params.toString()}`,
     { signal },
   );
-  return { source: "api", data: data.nodes };
+  return { source: "api", data: (data.nodes ?? []).map(normalizeNode) };
 }
 
 export async function getDaeNode(
@@ -72,7 +87,7 @@ export async function getDaeNode(
     return { source: "demo", data: node };
   }
   const data = await apiGet<DaeListNode>(ENDPOINTS.daeListNode(itemset), { signal });
-  return { source: "api", data };
+  return { source: "api", data: normalizeNode(data) };
 }
 
 /** Truy nguồn giao dịch của một entry (nhấn entry → xem giao dịch gốc). */

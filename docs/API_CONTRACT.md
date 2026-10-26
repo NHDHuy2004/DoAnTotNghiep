@@ -24,6 +24,8 @@ triển khai. Khi một endpoint được cung cấp, chỉ cần set env, khôn
 ### Transactions
 - `GET /transactions?page=1&pageSize=20&search=&status=`
   → `{ items: Transaction[], total: number, page: number, pageSize: number }`
+  - `search`: khớp theo **tên item** hoặc **mã giao dịch** (cho phép nhập `T3` → `3`).
+  - `status`: `processed` | `unprocessed` (lọc theo cờ `processed`).
 - `GET /transactions/{tid}` → `Transaction`
 - `POST /transactions` body `TransactionInput` → `201 Transaction`
 - `POST /transactions/import` body `{ format: "csv"|"json", content: string }`
@@ -64,6 +66,9 @@ interface AlgorithmConfig {
 - `GET /executions/{id}/phases/restructure` → `RestructureTrace`
 - `GET /executions/{id}/phases/expansion` → `ExpansionTrace`
 - `GET /executions/{id}/logs?after=<offset>` → `{ entries: LogEntry[], nextOffset: number }`
+  - Con trỏ phân đoạn: `after` là `nextOffset` của lần gọi trước (mặc định `0`),
+    response trả về **entry mới từ sau offset đó** kèm `nextOffset` mới.
+    Frontend poll mỗi 5 giây chỉ gửi `after` đã nhận → không tải lại toàn bộ log.
 
 ```ts
 type PhaseStatus = "pending" | "running" | "done" | "error" | "stopped";
@@ -126,9 +131,15 @@ interface RestructureNode {
 interface RestructureTrace {
   ltid: number;
   minae: number;
-  nodes: RestructureNode[];   // đã sắp xếp tăng dần smdaeub (chỉ kept)
+  nodes: RestructureNode[];   // TẤT CẢ node, phân biệt bằng cờ kept;
+                              // mảng kept giữ nguyên thứ tự tăng dần smdaeub
 }
 ```
+
+> **Tương thích phía frontend** (`algorithmService.getRestructureTrace`):
+> tách `nodes` theo cờ `kept` thành `kept`/`removed` (sắp lại `kept` tăng dần
+> smdaeub); chấp nhận thêm dạng cũ `{ kept, removed }` và trường phụ `f`;
+> entry có thể thiếu `u`/`aeRaw` (UI hiện "—" thay vì crash).
 
 #### ExpansionTrace
 ```ts
@@ -184,6 +195,10 @@ interface DaeListEntry {
   tdaeub?: number;
 }
 ```
+
+> **Ghi chú frontend:** `dae` (hợp đồng) được chuẩn hoá thành trường `value`
+> trong UI (`daeListService.normalizeEntry`) — backend chỉ cần trả `dae`;
+> `entries` có thể vắng (trả `entryCount: 0`) sẽ thành `[]`.
 
 ### Results (HAEI)
 - `GET /results?search=&size=&status=&sort=&order=` → `{ items: HaeiResult[], total: number }`

@@ -51,7 +51,8 @@ interface AppState {
 const Ctx = createContext<AppState | null>(null);
 
 interface ConfigState {
-  of: number;
+  /** Khóa của lần tải gần nhất (configTick | demoMode | apiBaseUrl). */
+  key: string | null;
   config: AlgorithmConfig | null;
   error: string | null;
 }
@@ -79,15 +80,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }
 
   const [configTick, setConfigTick] = useState(0);
-  const [cfg, setCfg] = useState<ConfigState>({ of: -1, config: null, error: null });
+  const [cfg, setCfg] = useState<ConfigState>({ key: null, config: null, error: null });
   const [configDirty, setConfigDirty] = useState(false);
 
   const [activeSession, setActiveSession] = useState<ExecutionSession | null>(null);
 
+  // Khóa của lần tải cấu hình hiện tại — khớp state.key là đã có kết quả.
+  const configKey = `${configTick}|${demoMode}|${apiBaseUrl}`;
+  const configSettled = cfg.key === configKey;
+
   useEffect(() => {
     if (demoMode) return;
     let active = true;
-    checkBackend().then((s) => {
+    // Luôn kiểm tra thật (bỏ qua cache 10s): refresh từ Header/Settings và
+    // đổi URL backend đều phải có kết quả mới ngay. Trạng thái "checking"
+    // được đặt ngay tại nơi bấm (callback sự kiện), không trong effect.
+    checkBackend(true).then((s) => {
       if (active) setBackendStatus(s);
     });
     return () => {
@@ -98,16 +106,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
+    const key = `${configTick}|${demoMode}|${apiBaseUrl}`;
     getConfig(controller.signal)
       .then((res) => {
         if (!active) return;
-        setCfg({ of: configTick, config: res.data, error: null });
+        setCfg({ key, config: res.data, error: null });
         setConfigDirty(false);
       })
       .catch((err: unknown) => {
         if (!active || controller.signal.aborted) return;
         setCfg({
-          of: configTick,
+          key,
           config: null,
           error: err instanceof Error ? err.message : String(err),
         });
@@ -116,9 +125,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       active = false;
       controller.abort();
     };
-  }, [configTick]);
-
-  const configSettled = cfg.of === configTick;
+    // Tải lại khi đổi nguồn dữ liệu (env/ghi đè/DEMO) hoặc bấm reloadConfig.
+  }, [configTick, demoMode, apiBaseUrl]);
 
   const value = useMemo<AppState>(
     () => ({
@@ -127,17 +135,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setApiBaseUrl: (url: string) => {
         setApiUrlOverride(url);
         // Khi đổi backend, kiểm tra lại kết nối ở lần render sau.
+        if (!demoMode) setBackendStatus("checking");
         setStatusTick((t) => t + 1);
       },
       demoMode,
       backendStatus,
-      refreshBackend: () => setStatusTick((t) => t + 1),
+      refreshBackend: () => {
+        if (!demoMode) setBackendStatus("checking");
+        setStatusTick((t) => t + 1);
+      },
       config: cfg.config,
       configLoading: !configSettled,
       configError: configSettled ? cfg.error : null,
       reloadConfig: () => setConfigTick((t) => t + 1),
       setConfig: (next) => {
-        setCfg({ of: configTick, config: next, error: null });
+        setCfg({ key: configKey, config: next, error: null });
         setConfigDirty(true);
       },
       activeSession,
@@ -152,7 +164,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       backendStatus,
       cfg,
       configSettled,
-      configTick,
+      configKey,
       activeSession,
       configDirty,
     ],

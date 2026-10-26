@@ -28,6 +28,7 @@ export default function SettingsPage() {
   } = useApp();
 
   const [url, setUrl] = useState<string>(apiOverride);
+  const [urlError, setUrlError] = useState<string | null>(null);
   // Đồng bộ ô nhập khi bản ghi đè thay đổi từ nguồn khác (tab khác / vừa lưu).
   const [prevOverride, setPrevOverride] = useState<string>(apiOverride);
   if (apiOverride !== prevOverride) {
@@ -35,13 +36,35 @@ export default function SettingsPage() {
     setUrl(apiOverride);
   }
 
+  /** URL rỗng = quay về env; nếu có giá trị thì phải là http(s):// hợp lệ. */
+  const validateUrl = (v: string): string | null => {
+    const trimmed = v.trim();
+    if (!trimmed) return null;
+    try {
+      const parsed = new URL(trimmed);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return "URL phải bắt đầu bằng http:// hoặc https://";
+      }
+      return null;
+    } catch {
+      return "URL không hợp lệ. Ví dụ: http://localhost:8080/api";
+    }
+  };
+
   const saveUrl = () => {
-    setApiBaseUrl(url);
-    toast.success("Đã lưu cấu hình", url ? "Áp dụng ngay cho toàn bộ trang." : "Đã quay về giá trị env.");
+    const err = validateUrl(url);
+    setUrlError(err);
+    if (err) {
+      toast.error("Chưa lưu được URL backend", err);
+      return;
+    }
+    setApiBaseUrl(url.trim());
+    toast.success("Đã lưu cấu hình", url.trim() ? "Áp dụng ngay cho toàn bộ trang." : "Đã quay về giá trị env.");
   };
 
   const resetUrl = () => {
     setUrl("");
+    setUrlError(null);
     setApiBaseUrl("");
     toast.info("Đã xóa ghi đè", "Quay lại NEXT_PUBLIC_API_BASE_URL trong .env.local.");
   };
@@ -109,7 +132,11 @@ export default function SettingsPage() {
               label="URL backend"
               placeholder="http://localhost:8080/api"
               value={url}
-              onChange={(e) => setUrl(e.target.value)}
+              onChange={(e) => {
+                setUrl(e.target.value);
+                if (urlError) setUrlError(null);
+              }}
+              error={urlError ?? undefined}
               hint="Để trống để quay lại giá trị env."
               name="apiBaseUrl"
             />

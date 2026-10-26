@@ -636,9 +636,11 @@ function RestructureSection({
         <span>
           Ltid = <strong className="font-mono text-ink">{data.ltid}</strong>
         </span>
-        <span>
-          f = <strong className="font-mono text-ink">{fmt(data.f, 2)}</strong>
-        </span>
+        {data.f !== undefined && (
+          <span>
+            f = <strong className="font-mono text-ink">{fmt(data.f, 2)}</strong>
+          </span>
+        )}
         <span>
           minae = <strong className="font-mono text-ink">{fmt(data.minae, 3)}</strong>
         </span>
@@ -713,6 +715,17 @@ function RestructureSection({
   );
 }
 
+/**
+ * Σ ae thô cho bảng trước/sau: ưu tiên `sae` backend gửi kèm; nếu không,
+ * cộng `aeRaw` — khi bất kỳ entry nào thiếu aeRaw → undefined (hiện "—").
+ */
+function rawAeSum(n: RestructureNode): number | undefined {
+  if (n.sae !== undefined) return n.sae;
+  if (n.entries.length === 0) return 0;
+  if (!n.entries.every((e) => e.aeRaw !== undefined)) return undefined;
+  return n.entries.reduce<number>((s, e) => s + (e.aeRaw ?? 0), 0);
+}
+
 function BeforeAfterTable({ nodes }: { nodes: RestructureNode[] }) {
   const cols: Column<RestructureNode>[] = [
     {
@@ -724,9 +737,7 @@ function BeforeAfterTable({ nodes }: { nodes: RestructureNode[] }) {
       key: "ae",
       header: <ColumnHeader label="Σ ae (thô)" metricKey="sae" />,
       align: "right",
-      render: (n) => (
-        <span className="font-mono">{fmt(n.entries.reduce((s, e) => s + e.aeRaw, 0))}</span>
-      ),
+      render: (n) => <span className="font-mono">{fmt(rawAeSum(n))}</span>,
     },
     {
       key: "sdae",
@@ -755,7 +766,7 @@ function BeforeAfterTable({ nodes }: { nodes: RestructureNode[] }) {
 function EntryTable({ entries }: { entries: RestructureEntry[] }) {
   const cols: Column<RestructureEntry>[] = [
     { key: "tid", header: "tid", render: (e) => <span className="font-mono">T{e.tid}</span> },
-    { key: "u", header: "u", align: "right", render: (e) => e.u },
+    { key: "u", header: "u", align: "right", render: (e) => e.u ?? "—" },
     {
       key: "weight",
       header: <ColumnHeader label="f^(Ltid−tid)" metricKey="weight" />,

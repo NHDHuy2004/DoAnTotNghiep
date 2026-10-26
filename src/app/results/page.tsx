@@ -16,7 +16,7 @@ import { exportResultsCsv, listResults } from "@/lib/services/resultService";
 import { getDaeNode } from "@/lib/services/daeListService";
 import type { HaeiResult } from "@/lib/types";
 import { fmt, fmtItemset } from "@/lib/utils";
-import { Download, Layers, Search } from "lucide-react";
+import { Download, Layers } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -78,13 +78,14 @@ export default function ResultsPage() {
       { key: "stt", header: "STT", align: "center", hideOnMobile: true, render: (r) => r.stt },
       {
         key: "itemset",
-        header: (
-          <ColumnHeader
-            label="Itemset"
-            tooltip={{ description: "Tập mục được thuật toán khai thác." }}
+        header: "Itemset",
+        sortable: true,
+        tooltip: (
+          <MetricTooltip
+            term="Itemset"
+            description="Tập mục được thuật toán khai thác."
           />
         ),
-        sortable: true,
         render: (r) => (
           <span className="font-mono font-semibold text-ink">{fmtItemset(r.itemset)}</span>
         ),
@@ -99,8 +100,9 @@ export default function ResultsPage() {
       },
       {
         key: "sdae",
-        header: <ColumnHeader label="Sdae" metricKey="sdae" />,
+        header: "Sdae",
         sortable: true,
+        tooltip: <MetricTooltip metricKey="sdae" />,
         align: "right",
         render: (r) => <span className="font-semibold tabular-nums text-brand">{fmt(r.sdae)}</span>,
       },
@@ -156,14 +158,18 @@ export default function ResultsPage() {
     [],
   );
 
-  const rowsWithStt: Row[] = (list.data?.items ?? []).map((r, i) => ({
-    ...r,
-    stt: (page - 1) * pageSize + i + 1,
-  }));
+  const rowsWithStt: Row[] = useMemo(
+    () =>
+      (list.data?.items ?? []).map((r, i) => ({
+        ...r,
+        stt: (page - 1) * pageSize + i + 1,
+      })),
+    [list.data, page],
+  );
 
   const total = list.data?.total ?? 0;
   const haeiCount = useMemo(
-    () => rowsWithStt.filter((r) => r.isHaei).filter((r) => r.expandable).length,
+    () => rowsWithStt.filter((r) => r.isHaei && r.expandable).length,
     [rowsWithStt],
   );
   const bestSdae = useMemo(
@@ -193,19 +199,19 @@ export default function ResultsPage() {
           <StatCard
             label="Tổng kết quả"
             value={total.toLocaleString("vi-VN")}
-            hint="Số tập mục trên trang hiện tại"
+            hint="Tổng số tập mục sau bộ lọc hiện tại"
             icon={<Layers size={15} />}
           />
           <StatCard
             label="Vừa đạt HAEI vừa còn mở rộng"
             value={haeiCount.toLocaleString("vi-VN")}
-            hint="Sdae ≥ minae và còn triển vọng mở rộng"
+            hint="Đếm trong 25 dòng của trang hiện tại"
             accent="green"
           />
           <StatCard
             label="Sdae cao nhất"
             value={bestSdae !== undefined ? fmt(bestSdae) : "—"}
-            hint="Hiệu suất trung bình suy giảm lớn nhất trang này"
+            hint="Trong 25 dòng của trang hiện tại"
           />
         </div>
       )}
@@ -225,29 +231,24 @@ export default function ResultsPage() {
               : undefined
           }
         >
-          <form
-            className="flex items-end gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
+          <SearchField
+            label="Tìm theo itemset"
+            placeholder="VD: bc"
+            value={searchInput}
+            onChange={(v) => {
+              setSearchInput(v);
+              // Bấm ✕ xóa cả bộ lọc đã áp dụng (không chỉ ô nhập)
+              if (!v) {
+                setSearch("");
+                setPage(1);
+              }
+            }}
+            onSubmit={() => {
               setPage(1);
               setSearch(searchInput);
             }}
-          >
-            <SearchField
-              label="Tìm theo itemset"
-              placeholder="VD: bc"
-              value={searchInput}
-              onChange={setSearchInput}
-              onSubmit={() => {
-                setPage(1);
-                setSearch(searchInput);
-              }}
-              className="w-48"
-            />
-            <Button type="submit" variant="secondary" size="md" aria-label="Tìm">
-              <Search size={14} /> Tìm
-            </Button>
-          </form>
+            className="w-56"
+          />
           <Select
             label="Độ dài"
             value={String(size)}

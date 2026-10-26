@@ -7,6 +7,13 @@ import { type ReactNode } from "react";
 export interface Column<T> {
   key: string;
   header: ReactNode;
+  /**
+   * Icon giải thích (MetricTooltip) render NGOÀI nút sắp xếp.
+   * Cột vừa sắp xếp được thì `header` phải là nhãn thuần (string) — nếu đặt
+   * <button> bên trong nút sắp xếp sẽ sinh HTML lồng nhau (lỗi hydration) và
+   * bấm "?" cũng sẽ sort cột.
+   */
+  tooltip?: ReactNode;
   /** true → cột có thể sắp xếp (gọi onSortChange). */
   sortable?: boolean;
   align?: "left" | "right" | "center";
@@ -93,17 +100,25 @@ export function DataTable<T>({
                   )}
                 >
                   {col.sortable && onSortChange ? (
-                    <button
-                      type="button"
-                      onClick={() => onSortChange(col.key)}
-                      className={cn(
-                        "inline-flex items-center gap-1 rounded transition-colors hover:text-ink",
-                        active && "text-brand",
-                      )}
-                    >
+                    <span className="inline-flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => onSortChange(col.key)}
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded transition-colors hover:text-ink",
+                          active && "text-brand",
+                        )}
+                      >
+                        {col.header}
+                        <SortIcon active={active} order={sort?.order} />
+                      </button>
+                      {col.tooltip}
+                    </span>
+                  ) : col.tooltip ? (
+                    <span className="inline-flex items-center gap-1">
                       {col.header}
-                      <SortIcon active={active} order={sort?.order} />
-                    </button>
+                      {col.tooltip}
+                    </span>
                   ) : (
                     col.header
                   )}

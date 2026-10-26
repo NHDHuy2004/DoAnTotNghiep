@@ -27,7 +27,7 @@ export function validateConfig(cfg: AlgorithmConfig): string[] {
       errors.push(`inv("${item}") phải là số dương.`);
     }
   }
-  for (const [item, v] of Object.entries(cfg.unitCostTable)) {
+  for (const [item, v] of Object.entries(cfg.unitCostTable ?? {})) {
     if (!Number.isFinite(v) || v < 0) {
       errors.push(`cu("${item}") phải là số không âm.`);
     }
@@ -35,31 +35,44 @@ export function validateConfig(cfg: AlgorithmConfig): string[] {
   return errors;
 }
 
+/**
+ * Hợp đồng API để `unitCostTable` là tùy chọn — chuẩn hóa về kiểu UI (bắt buộc)
+ * để mọi nơi đọc `cfg.unitCostTable[...]` không crash.
+ */
+function normalizeConfig(cfg: AlgorithmConfig): AlgorithmConfig {
+  return {
+    ...cfg,
+    investmentTable: cfg.investmentTable ?? {},
+    unitCostTable: cfg.unitCostTable ?? {},
+  };
+}
+
 export async function getConfig(signal?: AbortSignal): Promise<ServiceResult<AlgorithmConfig>> {
   if (isDemoMode()) {
     const saved = readLocal();
-    return { source: "demo", data: saved ?? structuredClone(DEMO_CONFIG) };
+    return { source: "demo", data: normalizeConfig(saved ?? structuredClone(DEMO_CONFIG)) };
   }
   const data = await apiGet<AlgorithmConfig>(ENDPOINTS.config, { signal });
-  return { source: "api", data };
+  return { source: "api", data: normalizeConfig(data) };
 }
 
 export async function saveConfig(cfg: AlgorithmConfig): Promise<ServiceResult<AlgorithmConfig>> {
   if (isDemoMode()) {
-    writeLocal(cfg);
-    return { source: "demo", data: cfg };
+    const saved = normalizeConfig(cfg);
+    writeLocal(saved);
+    return { source: "demo", data: saved };
   }
   const data = await apiPut<AlgorithmConfig>(ENDPOINTS.config, cfg);
-  return { source: "api", data };
+  return { source: "api", data: normalizeConfig(data) };
 }
 
 export async function resetConfig(): Promise<ServiceResult<AlgorithmConfig>> {
   if (isDemoMode()) {
     clearLocal();
-    return { source: "demo", data: structuredClone(DEMO_CONFIG) };
+    return { source: "demo", data: normalizeConfig(structuredClone(DEMO_CONFIG)) };
   }
   const data = await apiPost<AlgorithmConfig>(ENDPOINTS.configReset);
-  return { source: "api", data };
+  return { source: "api", data: normalizeConfig(data) };
 }
 
 /* Demo mode: lưu trong localStorage của trình duyệt. */

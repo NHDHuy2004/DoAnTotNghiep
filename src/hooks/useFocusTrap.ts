@@ -7,8 +7,13 @@
  * - Tab / Shift+Tab bị kẹt trong panel (hoặc fallback sang nút đóng).
  * - Escape gọi onClose.
  * - Khi đóng: trả focus về phần tử trước đó, mở lại cuộn trang.
+ *
+ * `onClose` được đọc qua ref: các component truyền arrow function mới mỗi render,
+ * nếu đưa thẳng vào dependency thì trap sẽ cài lại mỗi lần parent render →
+ * focus bị giật về nút đóng, lock cuộn bị reset (vd: trang Thực thi render lại
+ * mỗi 5 giây khi đang poll trong lúc Drawer log đang mở).
  */
-import { useEffect, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 
 const FOCUSABLE = [
   "a[href]",
@@ -25,6 +30,11 @@ export function useFocusTrap(
   open: boolean,
   onClose: () => void,
 ): void {
+  const closeRef = useRef(onClose);
+  useEffect(() => {
+    closeRef.current = onClose;
+  });
+
   useEffect(() => {
     if (!open) return;
     const panel = panelRef.current;
@@ -47,10 +57,17 @@ export function useFocusTrap(
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();
-        onClose();
+        closeRef.current();
         return;
       }
       if (e.key !== "Tab" || !panel) return;
+      // Focus đã ra ngoài panel (click nền, trình duyệt…) → kéo vào lại.
+      const active = document.activeElement;
+      if (active && active instanceof HTMLElement && !panel.contains(active)) {
+        e.preventDefault();
+        focusFirst();
+        return;
+      }
       const items = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
         (el) => el.offsetParent !== null || el === document.activeElement,
       );
@@ -73,7 +90,7 @@ export function useFocusTrap(
       document.body.style.overflow = prevOverflow;
       previouslyFocused?.focus?.({ preventScroll: true });
     };
-  }, [open, onClose, panelRef]);
+  }, [open, panelRef]);
 }
 
 /** Đóng popover / dropdown khi bấm ra ngoài hoặc nhấn Escape. */
@@ -82,13 +99,18 @@ export function useDismissable(
   open: boolean,
   onClose: () => void,
 ): void {
+  const closeRef = useRef(onClose);
+  useEffect(() => {
+    closeRef.current = onClose;
+  });
+
   useEffect(() => {
     if (!open) return;
     const onPointer = (e: MouseEvent | TouchEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+      if (ref.current && !ref.current.contains(e.target as Node)) closeRef.current();
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") closeRef.current();
     };
     document.addEventListener("mousedown", onPointer);
     document.addEventListener("keydown", onKey);
@@ -96,5 +118,5 @@ export function useDismissable(
       document.removeEventListener("mousedown", onPointer);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open, onClose, ref]);
+  }, [open, ref]);
 }

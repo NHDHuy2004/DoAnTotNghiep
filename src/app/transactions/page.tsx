@@ -41,8 +41,8 @@ function TransactionsView() {
 
   // Nhận ?tid= từ trang DAE-List (nhấn entry → xem giao dịch nguồn)
   const tidParam = searchParams.get("tid");
-  const urlTid =
-    tidParam !== null && Number.isFinite(Number(tidParam)) ? Number(tidParam) : null;
+  // Chỉ chấp nhận số nguyên dương: "?tid=", "?tid=abc", "?tid=1.5" → bỏ qua
+  const urlTid = tidParam !== null && /^\d+$/.test(tidParam) ? Number(tidParam) : null;
   const [detailTid, setDetailTid] = useState<number | null>(null);
   const [dismissedUrlTid, setDismissedUrlTid] = useState<number | null>(null);
   const effectiveTid =
@@ -178,7 +178,14 @@ function TransactionsView() {
             label="Tìm theo TID hoặc mã mục"
             placeholder="VD: T3 hoặc a"
             value={searchInput}
-            onChange={setSearchInput}
+            onChange={(v) => {
+              setSearchInput(v);
+              // Bấm ✕ xóa cả bộ lọc đã áp dụng (không chỉ ô nhập)
+              if (!v) {
+                setSearch("");
+                setPage(1);
+              }
+            }}
             onSubmit={() => {
               setPage(1);
               setSearch(searchInput.trim());
@@ -341,6 +348,13 @@ function AddTransactionDialog({
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // Mở lại hộp thoại → không hiển thị lỗi của lần trước
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open && error) setError(null);
+  }
+
   const update = (idx: number, patch: Partial<TransactionItem>) => {
     setRows((r) => r.map((row, i) => (i === idx ? { ...row, ...patch } : row)));
   };
@@ -409,15 +423,19 @@ function AddTransactionDialog({
                 type="number"
                 min={1}
                 aria-label={`Số lượng dòng ${idx + 1}`}
-                value={row.quantity}
-                onChange={(e) => update(idx, { quantity: Number(e.target.value) })}
+                value={Number.isFinite(row.quantity) ? row.quantity : ""}
+                onChange={(e) =>
+                  update(idx, { quantity: e.target.value === "" ? Number.NaN : Number(e.target.value) })
+                }
                 name={`qty-${idx}`}
               />
               <Input
                 type="number"
                 aria-label={`Utility dòng ${idx + 1}`}
-                value={row.utility}
-                onChange={(e) => update(idx, { utility: Number(e.target.value) })}
+                value={Number.isFinite(row.utility) ? row.utility : ""}
+                onChange={(e) =>
+                  update(idx, { utility: e.target.value === "" ? Number.NaN : Number(e.target.value) })
+                }
                 name={`util-${idx}`}
               />
               <Button
@@ -467,6 +485,17 @@ function ImportDialog({
   const [imported, setImported] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // Kết quả của lần nhập / định dạng trước không được hiển thị sang lần sau
+  const clearResult = () => {
+    setErrors([]);
+    setImported(null);
+  };
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) clearResult();
+  }
+
   const sample =
     format === "csv"
       ? "a,1,4; c,1,5; d,2,4\nb,2,6; c,2,10"
@@ -509,7 +538,10 @@ function ImportDialog({
         <Select
           label="Định dạng"
           value={format}
-          onChange={(e) => setFormat(e.target.value as "csv" | "json")}
+          onChange={(e) => {
+            setFormat(e.target.value as "csv" | "json");
+            clearResult();
+          }}
           className="w-full sm:w-56"
           name="format"
         >

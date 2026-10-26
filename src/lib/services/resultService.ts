@@ -1,6 +1,7 @@
 import { apiGet } from "@/lib/api/client";
-import { ENDPOINTS, isDemoMode } from "@/lib/api/endpoints";
+import { ENDPOINTS, getApiBaseUrl, isDemoMode } from "@/lib/api/endpoints";
 import { DEMO_RESULTS } from "@/lib/demo/demoData";
+import { ApiError } from "@/lib/types";
 import type { HaeiResult, Paginated, ServiceResult } from "@/lib/types";
 
 export interface ResultQuery {
@@ -91,9 +92,42 @@ export async function getResultDetail(
 /** Tải CSV: backend thật → GET /results/export; demo → tạo CSV từ dữ liệu demo. */
 export async function exportResultsCsv(): Promise<{ filename: string; content: string }> {
   if (!isDemoMode()) {
-    const res = await fetch(`${ENDPOINTS.resultsExport}?format=csv`);
-    if (!res.ok) throw new Error(`Backend trả về lỗi ${res.status} khi xuất CSV.`);
-    return { filename: "haei-results.csv", content: await res.text() };
+    // Phải nối base URL: path của ENDPOINTS là tương đối (apiFetch cũng làm vậy)
+    const baseUrl = getApiBaseUrl();
+    if (!baseUrl) {
+      throw new ApiError(
+        "Chưa cấu hình backend (NEXT_PUBLIC_API_BASE_URL). Hãy bật DEMO mode hoặc nhập URL backend ở trang Cài đặt.",
+        undefined,
+        ENDPOINTS.resultsExport,
+      );
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30000);
+    try {
+      const res = await fetch(`${baseUrl}${ENDPOINTS.resultsExport}?format=csv`, {
+        headers: { Accept: "text/csv" },
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        throw new ApiError(
+          `Backend trả về lỗi ${res.status} khi xuất CSV.`,
+          res.status,
+          ENDPOINTS.resultsExport,
+        );
+      }
+      const disposition = res.headers.get("content-disposition") ?? "";
+      const match = /filename="?([^";]+)"?/i.exec(disposition);
+      return { filename: match?.[1]?.trim() || "haei-results.csv", content: await res.text() };
+    } catch (err) {
+      if (err instanceof ApiError) throw err;
+      const msg =
+        err instanceof DOMException && err.name === "AbortError"
+          ? "Yêu cầu xuất CSV đã bị hủy (timeout)."
+          : `Không thể kết nối tới backend: ${err instanceof Error ? err.message : String(err)}`;
+      throw new ApiError(msg, undefined, ENDPOINTS.resultsExport);
+    } finally {
+      clearTimeout(timer);
+    }
   }
   const header = "itemset,size,sdae,minae,isHaei,expandable,entryCount";
   const rows = DEMO_RESULTS.map((r) =>

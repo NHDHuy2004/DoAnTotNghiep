@@ -77,8 +77,10 @@ export function Dialog({
         aria-labelledby={titleId}
         className={cn(
           "anim-pop flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-2xl bg-surface shadow-pop sm:rounded-2xl",
-          width,
+          // Đặt TRƯỚC `width`: twMerge giữ class sau cùng, nếu để sau thì
+          // max-w-[calc(100vw-1rem)] sẽ xóa mất width do prop.
           "max-w-[calc(100vw-1rem)]",
+          width,
           className,
         )}
         onClick={(e) => e.stopPropagation()}
@@ -130,8 +132,9 @@ export function Drawer({
         aria-labelledby={titleId}
         className={cn(
           "anim-slide-in absolute inset-y-0 right-0 flex w-full flex-col bg-surface shadow-pop",
-          size,
+          // Class sau cùng thắng trong twMerge — `size` phải nằm sau.
           "max-w-[100vw]",
+          size,
         )}
         onClick={(e) => e.stopPropagation()}
       >

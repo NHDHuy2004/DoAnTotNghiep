@@ -32,7 +32,7 @@ function PhaseDot({ status }: { status: PhaseStatus }) {
     error: { cls: "bg-danger", label: "lỗi" },
     stopped: { cls: "bg-ink-3", label: "đã dừng" },
   };
-  const c = map[status];
+  const c = map[status] ?? { cls: "bg-surface-3", label: String(status) };
   return <span className={c.cls} title={c.label} aria-label={c.label} />;
 }
 
