@@ -225,7 +225,7 @@ export default function ExecutionPage() {
       {activeSession && (
         <div className="space-y-4">
           {/* Pipeline 3 pha — trực quan hóa trạng thái từng bước */}
-          <div className="grid gap-3 lg:grid-cols-3">
+          <div className="stagger grid gap-3 lg:grid-cols-3">
             {PHASE_ORDER.map((phase, i) => (
               <div key={phase} className="flex items-stretch gap-3">
                 <PhaseCard

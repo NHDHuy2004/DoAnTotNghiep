@@ -17,7 +17,7 @@ export function LoadingState({ label = "Đang tải dữ liệu…" }: { label?:
 export function Skeleton({ className, style }: { className?: string; style?: CSSProperties }) {
   return (
     <div
-      className={cn("animate-pulse rounded-md bg-surface-3", className)}
+      className={cn("shimmer rounded-md bg-surface-3", className)}
       style={style}
       aria-hidden
     />
@@ -88,9 +88,13 @@ export function EmptyState({
   icon?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 px-4 py-14 text-center">
-      <span className="flex size-12 items-center justify-center rounded-full bg-surface-3 text-ink-3">
-        {icon ?? <Inbox size={22} />}
+    <div className="anim-fade flex flex-col items-center justify-center gap-2.5 px-4 py-14 text-center">
+      <span className="relative flex size-14 items-center justify-center rounded-2xl bg-grad-brand-soft text-brand shadow-[inset_0_0_0_1px_rgba(37,99,235,0.14)]">
+        <span
+          aria-hidden
+          className="absolute inset-0 rounded-2xl bg-grad-brand opacity-10 blur-xl"
+        />
+        <span className="relative">{icon ?? <Inbox size={24} />}</span>
       </span>
       <p className="text-sm font-semibold text-ink-2">{title}</p>
       {description && (
@@ -115,7 +119,7 @@ export function ErrorState({
   return (
     <div
       role="alert"
-      className="flex flex-col items-center justify-center gap-2 rounded-xl border border-danger-line bg-danger-soft/70 px-4 py-10 text-center"
+      className="anim-zoom flex flex-col items-center justify-center gap-2.5 rounded-xl border border-danger-line bg-danger-soft/70 px-4 py-10 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]"
     >
       <span className="flex size-11 items-center justify-center rounded-full bg-danger-soft">
         <AlertTriangle className="text-danger" size={22} />
@@ -142,9 +146,9 @@ export function NotReadyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-line-2 bg-surface-2/70 px-4 py-14 text-center">
-      <span className="flex size-12 items-center justify-center rounded-full bg-brand-soft text-brand">
-        <Construction size={22} />
+    <div className="anim-fade flex flex-col items-center justify-center gap-2.5 rounded-xl border border-dashed border-brand-line bg-grad-brand-soft px-4 py-14 text-center">
+      <span className="flex size-14 items-center justify-center rounded-2xl bg-grad-brand text-white shadow-[0_14px_28px_-16px_rgba(37,99,235,0.95)]">
+        <Construction size={24} />
       </span>
       <p className="text-sm font-semibold text-ink-2">{title}</p>
       <p className="max-w-lg text-xs leading-relaxed text-ink-3">{description}</p>

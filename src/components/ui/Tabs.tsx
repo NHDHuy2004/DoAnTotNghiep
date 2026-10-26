@@ -86,21 +86,22 @@ export function Tabs({
             tabIndex={active ? 0 : -1}
             onClick={() => onChange(t.key)}
             className={cn(
-              "relative inline-flex shrink-0 items-center gap-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors",
+              "relative inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-all duration-200",
               "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand",
-              active ? "text-brand" : "text-ink-2 hover:text-ink",
+              active
+                ? "bg-grad-brand-soft font-semibold text-brand shadow-[inset_0_0_0_1px_rgba(37,99,235,0.18)]"
+                : "text-ink-2 hover:bg-white/70 hover:text-ink",
             )}
           >
             {t.icon}
             {t.label}
             {t.badge}
-            <span
-              aria-hidden
-              className={cn(
-                "absolute inset-x-1 -bottom-px h-0.5 rounded-full transition-colors",
-                active ? "bg-brand" : "bg-transparent",
-              )}
-            />
+            {active && (
+              <span
+                aria-hidden
+                className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-grad-brand"
+              />
+            )}
           </button>
         );
       })}
@@ -126,7 +127,10 @@ export function TabPanel({
       id={`tabpanel-${tabKey}`}
       aria-labelledby={`tab-${tabKey}`}
       tabIndex={0}
-      className={cn("focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand", className)}
+      className={cn(
+        "anim-fade focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+        className,
+      )}
     >
       {children}
     </div>

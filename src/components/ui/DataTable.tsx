@@ -81,7 +81,7 @@ export function DataTable<T>({
       <table className="w-full border-collapse text-sm" style={{ minWidth }}>
         {caption && <caption className="sr-only">{caption}</caption>}
         <thead>
-          <tr className="border-b border-line bg-surface-2/80">
+          <tr className="border-b border-line bg-brand-soft">
             {columns.map((col) => {
               const active = sort?.key === col.key;
               const ariaSort = active ? (sort?.order === "asc" ? "ascending" : "descending") : undefined;
@@ -92,7 +92,7 @@ export function DataTable<T>({
                   aria-sort={ariaSort}
                   className={cn(
                     "px-3 py-2.5 text-[11px] font-semibold tracking-wide text-ink-3 uppercase",
-                    maxHeight && "sticky top-0 z-10 bg-surface-2",
+                    maxHeight && "sticky top-0 z-10 bg-brand-soft",
                     col.align === "right" && "text-right",
                     col.align === "center" && "text-center",
                     hideSm(col),

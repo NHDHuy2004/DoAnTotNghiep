@@ -195,7 +195,7 @@ export default function ResultsPage() {
       <DemoBanner source={list.source ?? null} />
 
       {total > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="stagger grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <StatCard
             label="Tổng kết quả"
             value={total.toLocaleString("vi-VN")}

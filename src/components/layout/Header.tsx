@@ -48,7 +48,11 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
           : "Đang kiểm tra…";
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-line bg-surface/95 px-3 backdrop-blur sm:px-5">
+    <header className="glass-bar sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-white/60 px-3 sm:px-5">
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-grad-brand opacity-40"
+      />
       <button
         type="button"
         onClick={onMenuClick}
@@ -136,6 +140,7 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
               className={cn(
                 "size-1.5 shrink-0 rounded-full bg-current",
                 backendStatus === "checking" && "animate-pulse",
+                (backendStatus === "connected" || backendStatus === "demo") && "pulse-ring",
               )}
             />
             <span className="hidden text-[11px] font-medium sm:inline">
@@ -154,7 +159,7 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
             <div
               role="dialog"
               aria-label="Trạng thái kết nối backend"
-              className="anim-pop absolute right-0 top-full z-40 mt-2 w-[300px] rounded-card border border-line bg-surface p-3.5 shadow-pop"
+              className="anim-pop glass-strong absolute right-0 top-full z-40 mt-2 w-[300px] rounded-xl p-3.5"
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-semibold text-ink">Kết nối backend</p>

@@ -121,7 +121,7 @@ export default function SettingsPage() {
         </CardBody>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="stagger grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader
             title="Ghi đè URL backend"

@@ -1,6 +1,7 @@
 "use client";
 
-import { DemoBanner, PageHeader } from "@/components/shared/PageHeader";
+import { DemoBanner } from "@/components/shared/PageHeader";
+import { Hero, HeroAction } from "@/components/shared/Hero";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Controls";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
@@ -15,11 +16,14 @@ import { fmt, fmtItemset } from "@/lib/utils";
 import {
   Activity,
   ArrowRight,
+  Blocks,
   Database,
   Hash,
   Layers,
   ListChecks,
+  Maximize2,
   Percent,
+  Shuffle,
   SlidersHorizontal,
   Timer,
   Trophy,
@@ -43,7 +47,7 @@ import {
  * Không tính toán thuật toán trong UI: mọi giá trị đều do service trả về.
  */
 export default function DashboardPage() {
-  const { config, backendStatus, demoMode: demo } = useApp();
+  const { config, backendStatus, demoMode: demo, activeSession } = useApp();
 
   const tx = useAsync((signal) => listTransactions({ page: 1, pageSize: 100 }, signal), []);
   const results = useAsync((signal) => listResults({ page: 1, pageSize: 100 }, signal), []);
@@ -87,9 +91,11 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Tổng quan hệ thống"
-        description="Dữ liệu đầu vào, cấu hình hiện hành và kết quả khai thác tập mục HAEI theo mô hình suy giảm HAEIM_Damped."
+      <Hero
+        eyebrow={demo ? "Bản demo · dữ liệu minh họa" : "Nền tảng phân tích khai thác tập mục"}
+        title="Tổng quan hệ thống HAEIM_Damped"
+        highlight="HAEIM_Damped"
+        description="Dữ liệu đầu vào, cấu hình hiện hành và kết quả khai thác tập mục HAEI theo mô hình suy giảm — pipeline ba pha Construction → Restructure → Expansion."
         badges={
           config && (
             <Badge variant="blue" title="Ngưỡng hiệu suất trung bình suy giảm tối thiểu">
@@ -99,18 +105,39 @@ export default function DashboardPage() {
         }
         actions={
           <>
-            <Link href="/config">
-              <Button variant="secondary">
-                <SlidersHorizontal size={15} /> Cấu hình
-              </Button>
-            </Link>
-            <Link href="/execution">
-              <Button>
-                <Activity size={15} /> Thực thi thuật toán
-              </Button>
-            </Link>
+            <HeroAction href="/config" variant="glass">
+              <SlidersHorizontal size={15} /> Cấu hình thuật toán
+            </HeroAction>
+            <HeroAction href="/execution">
+              <Activity size={15} /> Thực thi 3 pha
+            </HeroAction>
           </>
         }
+        steps={[
+          {
+            label: "Construction",
+            hint: "Xây dựng DAE-List ban đầu",
+            icon: Blocks,
+            state: activeSession?.status === "done" ? "done" : "idle",
+          },
+          {
+            label: "Restructure",
+            hint: "Sắp xếp lại theo suy giảm",
+            icon: Shuffle,
+            state:
+              activeSession?.status === "running"
+                ? "active"
+                : activeSession?.status === "done"
+                  ? "done"
+                  : "idle",
+          },
+          {
+            label: "Expansion",
+            hint: "Mở rộng tập mục ứng viên",
+            icon: Maximize2,
+            state: activeSession?.status === "done" ? "done" : "idle",
+          },
+        ]}
       />
       <DemoBanner source={tx.source ?? null} />
 
@@ -148,7 +175,7 @@ export default function DashboardPage() {
       {!loading && !error && (
         <div className="space-y-4">
           {/* Chỉ số chính — phân cấp rõ với hàng thống kê phụ bên dưới */}
-          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <div className="stagger grid grid-cols-2 gap-3 xl:grid-cols-4">
             <StatCard
               label="Tổng số giao dịch"
               value={totalTransactions ?? "—"}
@@ -215,7 +242,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Biểu đồ */}
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="stagger grid gap-4 lg:grid-cols-2">
             <Card>
               <CardHeader
                 title="Tổng tiện ích giao dịch theo TID"
@@ -241,6 +268,12 @@ export default function DashboardPage() {
                   <div className="h-60 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={txRows} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="tuGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#3b82f6" />
+                            <stop offset="100%" stopColor="#4338ca" />
+                          </linearGradient>
+                        </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" vertical={false} />
                         <XAxis
                           dataKey="name"
@@ -256,7 +289,7 @@ export default function DashboardPage() {
                           width={52}
                         />
                         <Tooltip content={<ChartTip unit="TU" />} cursor={{ fill: "#eef4ff" }} />
-                        <Bar dataKey="value" name="TU" fill="#1d4ed8" radius={[4, 4, 0, 0]} maxBarSize={34} />
+                        <Bar dataKey="value" name="TU" fill="url(#tuGrad)" radius={[6, 6, 0, 0]} maxBarSize={34} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -292,6 +325,16 @@ export default function DashboardPage() {
                     <div className="h-60 w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={sdaeRows} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="haeiGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#34d399" />
+                              <stop offset="100%" stopColor="#047857" />
+                            </linearGradient>
+                            <linearGradient id="notHaeiGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#cbd5e1" />
+                              <stop offset="100%" stopColor="#94a3b8" />
+                            </linearGradient>
+                          </defs>
                           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" vertical={false} />
                           <XAxis
                             dataKey="name"
@@ -315,9 +358,12 @@ export default function DashboardPage() {
                               label={{ value: `minae ${fmt(minae, 3)}`, position: "insideTopRight", fontSize: 10, fill: "#b45309" }}
                             />
                           )}
-                          <Bar dataKey="value" name="Sdae" radius={[4, 4, 0, 0]} maxBarSize={40}>
+                          <Bar dataKey="value" name="Sdae" radius={[6, 6, 0, 0]} maxBarSize={40}>
                             {sdaeRows.map((r) => (
-                              <Cell key={r.name} fill={r.isHaei ? "#047857" : "#94a3b8"} />
+                              <Cell
+                                key={r.name}
+                                fill={r.isHaei ? "url(#haeiGrad)" : "url(#notHaeiGrad)"}
+                              />
                             ))}
                           </Bar>
                         </BarChart>
@@ -340,7 +386,7 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+          <div className="stagger grid gap-4 lg:grid-cols-[1.4fr_1fr]">
             {/* Thống kê theo pha — dữ liệu DEMO lấy từ demoData; backend chưa cung cấp */}
             <Card>
               <CardHeader

@@ -6,13 +6,44 @@ import type { ReactNode } from "react";
 
 export type StatAccent = "blue" | "green" | "amber" | "red" | "gray" | "purple";
 
-const ACCENTS: Record<StatAccent, { chip: string; text: string }> = {
-  blue: { chip: "bg-brand-soft text-brand", text: "text-brand" },
-  green: { chip: "bg-success-soft text-success", text: "text-success" },
-  amber: { chip: "bg-warning-soft text-warning", text: "text-warning" },
-  red: { chip: "bg-danger-soft text-danger", text: "text-danger" },
-  gray: { chip: "bg-surface-3 text-ink-2", text: "text-ink-2" },
-  purple: { chip: "bg-accent-soft text-accent", text: "text-accent" },
+/** Chip icon gradient + màu chữ tương ứng (mỗi accent một gradient cố định). */
+const ACCENTS: Record<StatAccent, { chip: string; text: string; bar: string; glow: string }> = {
+  blue: {
+    chip: "bg-grad-brand text-white shadow-[0_8px_16px_-10px_rgba(37,99,235,0.95)]",
+    text: "text-brand",
+    bar: "from-blue-600 via-indigo-600 to-violet-600",
+    glow: "bg-blue-500/25",
+  },
+  green: {
+    chip: "bg-grad-success text-white shadow-[0_8px_16px_-10px_rgba(4,120,87,0.95)]",
+    text: "text-success",
+    bar: "from-emerald-500 to-teal-600",
+    glow: "bg-emerald-500/25",
+  },
+  amber: {
+    chip: "bg-grad-warning text-white shadow-[0_8px_16px_-10px_rgba(180,83,9,0.95)]",
+    text: "text-warning",
+    bar: "from-amber-400 to-orange-600",
+    glow: "bg-amber-500/25",
+  },
+  red: {
+    chip: "bg-grad-danger text-white shadow-[0_8px_16px_-10px_rgba(185,28,28,0.95)]",
+    text: "text-danger",
+    bar: "from-red-500 to-rose-700",
+    glow: "bg-red-500/25",
+  },
+  gray: {
+    chip: "bg-grad-ink text-white shadow-[0_8px_16px_-10px_rgba(15,23,41,0.9)]",
+    text: "text-ink-2",
+    bar: "from-slate-500 to-slate-700",
+    glow: "bg-slate-500/25",
+  },
+  purple: {
+    chip: "bg-grad-purple text-white shadow-[0_8px_16px_-10px_rgba(109,40,217,0.95)]",
+    text: "text-accent",
+    bar: "from-violet-500 to-purple-700",
+    glow: "bg-violet-500/25",
+  },
 };
 
 /**
@@ -47,25 +78,42 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "flex flex-col rounded-card border border-line bg-surface p-4 shadow-card",
+        "group relative flex flex-col overflow-hidden rounded-xl border border-line bg-surface p-4 shadow-card card-hover",
         className,
       )}
     >
-      <div className="flex items-center gap-2.5">
+      {/* Thanh gradient mảnh trên cùng — đổi màu theo accent */}
+      <span
+        aria-hidden
+        className={cn("absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r", a.bar)}
+      />
+      {/* Quầng sáng dịu ở góc, chỉ nổi bật khi hover */}
+      <span
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute -top-14 -right-12 size-32 rounded-full blur-2xl transition-opacity duration-300 group-hover:opacity-100 opacity-0",
+          a.glow,
+        )}
+      />
+
+      <div className="relative flex items-center gap-2.5">
         {icon && (
-          <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", a.chip)}>
+          <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl", a.chip)}>
             {icon}
           </span>
         )}
-        <p className="min-w-0 truncate text-xs font-medium text-ink-3" title={typeof label === "string" ? label : undefined}>
+        <p
+          className="min-w-0 truncate text-xs font-medium text-ink-3"
+          title={typeof label === "string" ? label : undefined}
+        >
           {label}
         </p>
       </div>
 
       <p
         className={cn(
-          "mt-3 font-semibold tracking-tight text-ink tabular-nums",
-          emphasized ? "text-[28px] leading-8" : "text-2xl leading-7",
+          "relative mt-3 font-semibold tracking-tight text-ink tabular-nums",
+          emphasized ? "text-[30px] leading-9" : "text-2xl leading-7",
         )}
       >
         {value}
@@ -74,7 +122,7 @@ export function StatCard({
       {delta && (
         <p
           className={cn(
-            "mt-1 inline-flex items-center gap-1 text-xs font-medium",
+            "relative mt-1 inline-flex items-center gap-1 text-xs font-medium",
             good ? "text-success" : "text-danger",
           )}
         >
@@ -84,7 +132,7 @@ export function StatCard({
         </p>
       )}
 
-      {hint && <p className="mt-1 text-[11px] leading-relaxed text-ink-3">{hint}</p>}
+      {hint && <p className="relative mt-1 text-[11px] leading-relaxed text-ink-3">{hint}</p>}
     </div>
   );
 }

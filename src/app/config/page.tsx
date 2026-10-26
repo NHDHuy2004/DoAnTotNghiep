@@ -250,7 +250,7 @@ export default function ConfigPage() {
         </div>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="stagger grid gap-4 lg:grid-cols-2">
         {/* Tham số bắt buộc */}
         <Card>
           <CardHeader

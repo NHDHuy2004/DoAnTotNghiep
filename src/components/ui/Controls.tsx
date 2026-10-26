@@ -15,20 +15,23 @@ type Size = "sm" | "md" | "lg";
 
 const variantMap: Record<Variant, string> = {
   primary:
-    "bg-brand text-white hover:bg-brand-2 active:bg-brand-2 disabled:bg-brand-line disabled:text-white/80",
+    "sheen bg-grad-brand text-white shadow-[0_8px_18px_-10px_rgba(37,99,235,0.95)] " +
+    "hover:shadow-[0_12px_24px_-10px_rgba(37,99,235,0.95)] hover:brightness-[1.06] active:brightness-95 " +
+    "disabled:bg-brand-line disabled:text-white/80 disabled:shadow-none disabled:hover:brightness-100",
   secondary:
-    "border border-line-2 bg-surface text-ink-2 hover:border-slate-300 hover:bg-surface-2 hover:text-ink disabled:text-ink-3 disabled:hover:bg-surface",
+    "border border-line-2 bg-white/80 text-ink-2 backdrop-blur-sm hover:border-brand-line hover:bg-white hover:text-ink hover:shadow-[0_8px_18px_-14px_rgba(15,23,41,0.7)] " +
+    "disabled:text-ink-3 disabled:hover:bg-white/80 disabled:hover:border-line-2",
   ghost:
     "text-ink-2 hover:bg-surface-3 hover:text-ink disabled:text-ink-3",
   danger:
-    "bg-danger text-white hover:bg-red-700 active:bg-red-700 disabled:bg-red-300",
+    "sheen bg-grad-danger text-white shadow-[0_8px_18px_-10px_rgba(185,28,28,0.9)] hover:brightness-[1.06] active:brightness-95 disabled:bg-red-300 disabled:shadow-none",
   link: "text-brand hover:text-brand-2 underline-offset-2 hover:underline disabled:text-ink-3",
 };
 
 const sizeMap: Record<Size, string> = {
-  sm: "h-8 gap-1.5 px-2.5 text-xs",
-  md: "h-9 gap-2 px-3.5 text-sm",
-  lg: "h-11 gap-2 px-5 text-sm",
+  sm: "h-8 gap-1.5 px-2.5 text-xs rounded-lg",
+  md: "h-9 gap-2 px-3.5 text-sm rounded-xl",
+  lg: "h-11 gap-2 px-5 text-sm rounded-xl",
 };
 
 /**
@@ -51,7 +54,7 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center rounded-lg font-medium whitespace-nowrap transition-colors",
+        "inline-flex items-center justify-center font-medium whitespace-nowrap transition-all duration-200",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
         "disabled:cursor-not-allowed",
         variantMap[variant],

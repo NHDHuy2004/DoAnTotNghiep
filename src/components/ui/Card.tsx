@@ -5,15 +5,19 @@ import type { HTMLAttributes, ReactNode } from "react";
 export function Card({
   className,
   children,
+  interactive = false,
   ...props
 }: {
   className?: string;
   children: ReactNode;
+  /** Thẻ có thể bấm được (chứa link/nút): thêm hiệu ứng nhấc khi hover. */
+  interactive?: boolean;
 } & HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
-        "rounded-card border border-line bg-surface shadow-card",
+        "rounded-xl border border-line bg-surface shadow-card",
+        interactive && "card-hover",
         className,
       )}
       {...props}
@@ -45,7 +49,7 @@ export function CardHeader({
     >
       <div className="flex min-w-0 items-start gap-2.5">
         {icon && (
-          <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand">
+          <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-grad-brand text-white shadow-[0_6px_14px_-8px_rgba(37,99,235,0.9)]">
             {icon}
           </span>
         )}

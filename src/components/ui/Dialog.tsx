@@ -18,7 +18,11 @@ function PanelHeader({
   id: string;
 }) {
   return (
-    <div className="flex items-start justify-between gap-3 border-b border-line px-4 py-3 sm:px-5">
+    <div className="relative flex items-start justify-between gap-3 border-b border-line bg-surface-2/60 px-4 py-3 sm:px-5">
+      <span
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-px bg-grad-brand opacity-50"
+      />
       <div className="min-w-0">
         <h2 id={id} className="text-sm font-semibold text-ink">
           {title}

@@ -60,8 +60,40 @@
 
   /* Bán kính & đổ bóng thống nhất */
   --radius-card: 12px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 24px;
   --shadow-card: 0 1px 2px rgba(15, 23, 41, 0.04), 0 1px 3px rgba(15, 23, 41, 0.05);
   --shadow-pop: 0 10px 30px rgba(15, 23, 41, 0.12), 0 2px 8px rgba(15, 23, 41, 0.06);
+
+  /* ===== Makeover — gradient, glass, elevation ===== */
+  /* Gradient chính (brand → indigo → tím) — chỉ dùng cho điểm nhấn, không tô nền trang */
+  --gradient-brand: linear-gradient(135deg, #2563eb 0%, #4f46e5 52%, #7c3aed 100%);
+  --gradient-brand-soft: linear-gradient(135deg, #eff6ff 0%, #eef2ff 55%, #f5f3ff 100%);
+  --gradient-success: linear-gradient(135deg, #10b981 0%, #047857 100%);
+  --gradient-warning: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
+  --gradient-danger: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+  --gradient-ink: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+  /* Viền sáng cho panel kính */
+  --gradient-line: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.2));
+
+  /* Bề mặt kính (glassmorphism) */
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-strong: rgba(255, 255, 255, 0.86);
+  --glass-border: rgba(255, 255, 255, 0.75);
+
+  /* Elevations mới */
+  --shadow-lift: 0 18px 40px -22px rgba(15, 23, 41, 0.35), 0 6px 16px -10px rgba(15, 23, 41, 0.18);
+  --shadow-glow: 0 0 0 1px rgba(37, 99, 235, 0.14), 0 14px 34px -18px rgba(37, 99, 235, 0.55);
+  --shadow-glow-success: 0 14px 34px -18px rgba(4, 120, 87, 0.55);
+  --shadow-inset-soft: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+
+  /* Motion — easing & duration thống nhất */
+  --ease-out-quart: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 0.14s;
+  --dur-base: 0.22s;
+  --dur-slow: 0.42s;
 }
 
 html {
@@ -188,8 +220,276 @@ pre {
   }
 }
 .anim-slide-in-left {
-  animation: haeim-slide-in-left 0.22s cubic-bezier(0.22, 0.61, 0.36, 1);
+  animation: haeim-slide-in-left 0.22s var(--ease-out-quart, ease-out);
 }
+
+/* =========================================================================
+   MAKEOVER LỚN — hero, gradient, glassmorphism, stagger entrance
+   Mọi class đều tôn trọng prefers-reduced-motion (xem cuối file).
+   ========================================================================= */
+
+/* Nền trang: các quầng sáng dịu, cố định (fixed) — không ảnh hưởng CUỘN */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(52rem 32rem at 8% -6%, rgba(37, 99, 235, 0.13), transparent 62%),
+    radial-gradient(46rem 30rem at 100% 0%, rgba(124, 58, 237, 0.11), transparent 60%),
+    radial-gradient(40rem 28rem at 62% 108%, rgba(16, 185, 129, 0.09), transparent 62%),
+    var(--color-canvas);
+}
+
+/* Chữ gradient — dùng cho tiêu đề hero / vài điểm nhấn, luôn kèm nền tương phản */
+.gradient-text {
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Gradient utilities.
+   Lưu ý: `bg-[var(--gradient-x)]` bị Tailwind suy luận thành background-color
+   (giá trị gradient → không hợp lệ → KHÔNG hiện). Phải khai báo tường minh
+   background-image bằng class riêng bên dưới. */
+.bg-grad-brand {
+  background-image: var(--gradient-brand);
+}
+.bg-grad-brand-soft {
+  background-image: var(--gradient-brand-soft);
+}
+.bg-grad-success {
+  background-image: var(--gradient-success);
+}
+.bg-grad-warning {
+  background-image: var(--gradient-warning);
+}
+.bg-grad-danger {
+  background-image: var(--gradient-danger);
+}
+.bg-grad-ink {
+  background-image: var(--gradient-ink);
+}
+.bg-grad-purple {
+  background-image: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+}
+
+/* Bề mặt kính: mờ + viền sáng + bóng nhẹ (glassmorphism) */
+.glass {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-card), var(--shadow-inset-soft);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+}
+.glass-strong {
+  background: var(--glass-strong);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: var(--shadow-lift), var(--shadow-inset-soft);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+}
+/* Thanh trên cùng (header): kính mỏng, chỉ có viền dưới */
+.glass-bar {
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 1px 0 rgba(15, 23, 41, 0.05), 0 8px 24px -20px rgba(15, 23, 41, 0.5);
+  backdrop-filter: blur(16px) saturate(170%);
+  -webkit-backdrop-filter: blur(16px) saturate(170%);
+}
+
+/* Panel gradient: viền chuyển sắc bao quanh khối màu nhạt */
+.gradient-panel {
+  position: relative;
+  background: var(--gradient-brand-soft);
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+.gradient-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--gradient-brand);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* Card nổi khi hover: nhấc nhẹ + đổ bóng sâu hơn (chỉ thẻ tương tác) */
+.card-hover {
+  transition:
+    transform var(--dur-base) var(--ease-out-quart),
+    box-shadow var(--dur-base) var(--ease-out-quart),
+    border-color var(--dur-base) var(--ease-out-quart);
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lift);
+  border-color: var(--color-brand-line);
+}
+.card-hover:focus-within {
+  border-color: var(--color-brand-line);
+}
+
+/* Sọc sáng lướt qua nút chính khi hover (sheen) */
+.sheen {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-120%);
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.38) 46%,
+    transparent 82%
+  );
+  transition: transform 0.55s var(--ease-out-quart);
+  pointer-events: none;
+}
+.sheen:hover::after,
+.sheen:focus-visible::after {
+  transform: translateX(120%);
+}
+
+/* Lưới kỹ thuật mảnh cho nền hero — gợi cảm giác “data / research” */
+.grid-pattern {
+  background-image:
+    linear-gradient(to right, rgba(15, 23, 41, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 23, 41, 0.05) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: radial-gradient(70% 70% at 50% 40%, #000 30%, transparent 100%);
+  -webkit-mask-image: radial-gradient(70% 70% at 50% 40%, #000 30%, transparent 100%);
+}
+
+/* Quầng sáng trôi chậm trong hero */
+@keyframes haeim-orb {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(3%, -5%, 0) scale(1.08);
+  }
+}
+.orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(46px);
+  opacity: 0.55;
+  animation: haeim-orb 14s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Nhấp nháy nhẹ cho chấm trạng thái đang hoạt động */
+@keyframes haeim-pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 currentColor;
+    opacity: 0.7;
+  }
+  70% {
+    box-shadow: 0 0 0 7px transparent;
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.pulse-ring {
+  animation: haeim-pulse-ring 1.9s ease-out infinite;
+}
+
+/* Vạch sáng chạy (spinner/progress không xác định) */
+@keyframes haeim-shimmer {
+  100% {
+    background-position: 200% 0;
+  }
+}
+.shimmer {
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: haeim-shimmer 1.5s linear infinite;
+}
+
+/* ===== Entrance: mờ + trượt lên ===== */
+@keyframes haeim-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.anim-rise {
+  animation: haeim-rise 0.5s var(--ease-out-quart) both;
+}
+@keyframes haeim-zoom {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.anim-zoom {
+  animation: haeim-zoom 0.45s var(--ease-out-quart) both;
+}
+
+/* Stagger: con thứ tự đầu tiên vào trước, các em vào sau (tối đa 12 phần tử) */
+.stagger > * {
+  animation: haeim-rise 0.5s var(--ease-out-quart) both;
+}
+.stagger > *:nth-child(1) { animation-delay: 0.03s; }
+.stagger > *:nth-child(2) { animation-delay: 0.08s; }
+.stagger > *:nth-child(3) { animation-delay: 0.13s; }
+.stagger > *:nth-child(4) { animation-delay: 0.18s; }
+.stagger > *:nth-child(5) { animation-delay: 0.23s; }
+.stagger > *:nth-child(6) { animation-delay: 0.28s; }
+.stagger > *:nth-child(7) { animation-delay: 0.33s; }
+.stagger > *:nth-child(8) { animation-delay: 0.38s; }
+.stagger > *:nth-child(9) { animation-delay: 0.43s; }
+.stagger > *:nth-child(10) { animation-delay: 0.48s; }
+.stagger > *:nth-child(11) { animation-delay: 0.53s; }
+.stagger > *:nth-child(12) { animation-delay: 0.58s; }
+
+/* Chuyển trang: nội dung chính vào nhẹ mỗi lần đổi route */
+@keyframes haeim-page {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.page-enter {
+  animation: haeim-page 0.34s var(--ease-out-quart) both;
+}
+
 
 /* Nhập liệu số: không có spinner khi ô hẹp */
 input[type="number"] {

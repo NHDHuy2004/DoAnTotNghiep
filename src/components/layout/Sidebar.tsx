@@ -29,19 +29,21 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        "flex h-full flex-col border-r border-line bg-surface transition-[width] duration-200",
+        "flex h-full flex-col border-r border-white/70 bg-white/72 shadow-[inset_-1px_0_0_rgba(255,255,255,0.6),12px_0_32px_-28px_rgba(15,23,41,0.9)] backdrop-blur-xl transition-[width] duration-300",
         isCollapsed ? "w-16" : "w-64",
       )}
       aria-label="Điều hướng chính"
     >
       {/* Thương hiệu — cùng chiều cao với Header để thẳng hàng */}
-      <div className={cn("flex h-14 shrink-0 items-center gap-2.5 border-b border-line", isCollapsed ? "justify-center px-2" : "px-4")}>
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand text-white shadow-sm">
-          <FlaskConical size={17} />
+      <div className={cn("flex h-14 shrink-0 items-center gap-2.5 border-b border-white/70", isCollapsed ? "justify-center px-2" : "px-4")}>
+        <span className="relative flex size-9 shrink-0 items-center justify-center rounded-xl bg-grad-brand text-white shadow-[0_6px_16px_-6px_rgba(37,99,235,0.85)]">
+          <FlaskConical size={18} />
         </span>
         {!isCollapsed && (
           <div className="min-w-0">
-            <p className="truncate text-sm leading-tight font-bold text-ink">HAEIM_Damped</p>
+            <p className="truncate bg-grad-brand bg-clip-text text-sm leading-tight font-bold text-transparent">
+              HAEIM_Damped
+            </p>
             <p className="truncate text-[10px] leading-tight text-ink-3">
               Khai thác tập mục · suy giảm
             </p>
@@ -70,21 +72,27 @@ export function Sidebar({
                     aria-current={active ? "page" : undefined}
                     onClick={onNavigate}
                     className={cn(
-                      "relative flex items-center gap-3 rounded-lg py-2 text-sm font-medium transition-colors",
+                      "group relative flex items-center gap-3 rounded-xl py-2 text-sm font-medium transition-all duration-200",
                       "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand",
                       isCollapsed ? "h-9 justify-center px-0" : "px-3",
                       active
-                        ? "bg-brand-soft text-brand"
-                        : "text-ink-2 hover:bg-surface-2 hover:text-ink",
+                        ? "bg-grad-brand-soft text-brand shadow-[inset_0_0_0_1px_rgba(37,99,235,0.14)]"
+                        : "text-ink-2 hover:translate-x-0.5 hover:bg-white/70 hover:text-ink",
                     )}
                   >
                     {active && (
                       <span
                         aria-hidden
-                        className="absolute -left-2 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r bg-brand"
+                        className="absolute -left-2 top-1/2 h-6 w-1.5 -translate-y-1/2 rounded-r-full bg-grad-brand shadow-[0_0_10px_rgba(37,99,235,0.65)]"
                       />
                     )}
-                    <Icon size={17} className="shrink-0" />
+                    <Icon
+                      size={17}
+                      className={cn(
+                        "shrink-0 transition-transform duration-200",
+                        active ? "scale-110" : "group-hover:scale-105",
+                      )}
+                    />
                     {!isCollapsed && <span className="truncate">{label}</span>}
                   </Link>
                 );
@@ -107,7 +115,7 @@ export function Sidebar({
       </nav>
 
       {/* Chân sidebar */}
-      <div className="shrink-0 border-t border-line p-2">
+      <div className="shrink-0 border-t border-white/70 p-2">
         {variant === "desktop" && onToggle && (
           <button
             type="button"

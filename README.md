@@ -57,7 +57,7 @@ Quy tắc DEMO (một hàm dùng chung cho UI và services — `computeDemoMode`
 | 7 | `/history` | **Lịch sử thực thi** — danh sách phiên (DEMO: giữ trong phiên trình duyệt), lọc theo trạng thái. |
 | 8 | `/settings` | **Cài đặt** — trạng thái backend, URL hiệu lực, ghi đè URL, giải thích chế độ DEMO. |
 
-**Bố cục:** Shell mới — Sidebar gom nhóm theo route (Tổng quan · Dữ liệu · Phân tích · Hệ thống), active indicator + thu gọn có tooltip; Header có breadcrumb cấp nhóm và popover trạng thái backend; nền xám nhạt (canvas) + surface trắng + primary xanh dương, màu ngữ nghĩa ổn định (success/warning/danger/info, tím riêng cho DEMO). Responsive 1440/1280/768/390px; accessibility: skip-link, focus ring, bàn phím trên bảng/dialog, `aria-*` cho Tabs/tooltip.
+**Bố cục:** Shell mới — Sidebar gom nhóm theo route (Tổng quan · Dữ liệu · Thuật toán · Hệ thống), active indicator gradient có glow + thu gọn có tooltip; Header **kính mờ (glass)** có breadcrumb cấp nhóm và popover trạng thái backend; trang Tổng quan mở đầu bằng **Hero** (nền gradient tối + lưới kỹ thuật + quầng sáng trôi, pipeline 3 pha, CTA); các trang còn lại mở đầu bằng **PageHeader panel** (nền gradient mềm + orb trang trí). Nền canvas có quầng sáng cố định, surface trắng, primary xanh dương → chàm → tím; màu ngữ nghĩa ổn định (success/warning/danger/info, tím riêng cho DEMO). Responsive 1440/1280/768/390px; accessibility: skip-link, focus ring, bàn phím trên bảng/dialog, `aria-*` cho Tabs/tooltip; mọi chuyển động tôn trọng `prefers-reduced-motion`.
 
 **States hiển thị ở mọi trang:** `loading` · `empty` · `error (+ Thử lại)` ·
 `validation` · `not-runed` (chưa chạy lần nào) · `running` · `completed` · `failed`.
@@ -68,7 +68,7 @@ Quy tắc DEMO (một hàm dùng chung cho UI và services — `computeDemoMode`
 src/
 ├── app/                  # 8 trang + layout (App Router)
 ├── components/
-│   ├── shared/           # PageHeader, DemoBanner
+│   ├── shared/           # PageHeader (panel), Hero + HeroAction, DemoBanner
 │   ├── layout/           # AppShell, Sidebar, Header
 │   └── ui/               # bộ component dùng chung:
 │                         #   Card, Badge, StatCard, Controls (Button/Input/Select/Search),
@@ -113,7 +113,9 @@ docs/API_CONTRACT.md      # hợp đồng endpoint chờ backend
 
 ## 7. Design system (tóm tắt)
 
-- **Tokens** (`globals.css` → `@theme`): `--color-canvas/surface/line/ink/brand/success/warning/danger/info/accent` + `--radius-card`, `--shadow-card/pop`; animation `.anim-fade/.anim-pop/.anim-slide-in` có tôn trọng `prefers-reduced-motion`.
+- **Tokens** (`globals.css` → `@theme`): `--color-canvas/surface/line/ink/brand/success/warning/danger/info/accent` + `--radius-card/lg/xl/2xl`, `--shadow-card/pop/lift/glow`, **gradient** (`--gradient-brand/brand-soft/success/warning/danger/ink`), **glass** (`--glass`, `--glass-strong`), **motion** (`--ease-out-quart`, `--dur-fast/base/slow`) + animation `.anim-fade/.anim-pop/.anim-rise/.anim-zoom/.anim-slide-in` có tôn trọng `prefers-reduced-motion`.
+- **Class dùng riêng (không phải Tailwind):** `.bg-grad-brand|-brand-soft|-success|-warning|-danger|-ink|-purple` (ghi rõ `background-image` — vì `bg-[var(--gradient-x)]` bị Tailwind suy luận thành `background-color` → gradient sẽ KHÔNG hiện), `.glass`/`.glass-strong`/`.glass-bar`, `.gradient-panel`, `.gradient-text`, `.card-hover`, `.sheen`, `.grid-pattern`, `.orb`, `.pulse-ring`, `.shimmer`, `.stagger` (stagger entrance), `.page-enter` (chuyển trang).
+- **Component chủ đạo:** `Hero` + `HeroAction` (trang Tổng quan), `PageHeader` dạng panel (7 trang còn lại), `Card(interactive)`, `StatCard` (chip icon gradient + thanh accent trên cùng + glow khi hover), `Button` gradient có sheen, `Tabs` dạng pill, `Dialog/Drawer` viền gradient trên, `Toast`/`EmptyState`/`NotReadyState` có gradient.
 - **Màu ngữ nghĩa cố định:** blue = brand/đang xử lý · green = đạt · amber = cảnh báo · red = lỗi · gray = trung tính · **purple = chỉ dành cho nhãn DEMO**.
 - **Tooltip công thức:** `src/lib/metrics.ts` là nguồn duy nhất (ae, dae, maeub, mdaeub, sae, sdae, smdaeub, tdaeub, stdaeub, ltdaeub, haei, expandable, f, minae, …); `MetricTooltip`/`ColumnHeader` render qua **portal** để không bị cắt bởi `overflow-x-auto` của bảng.
-- **Không fake data/progress:** mọi giá trị do service trả về; DEMO luôn gắn nhãn; lỗi backend → ErrorState + nút Thử lại.
+- **Không fake data/progress:** mọi giá trị do service trả về; DEMO luôn gắn nhãn; lỗi backend → ErrorState + nút Thử lại. Hero chỉ hiển thị trạng thái pha từ `activeSession`, không bịa số.

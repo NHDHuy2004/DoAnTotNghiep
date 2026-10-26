@@ -85,7 +85,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             key={t.id}
             className={cn(
-              "pointer-events-auto flex w-full items-start gap-2.5 rounded-card border bg-surface p-3 shadow-pop",
+              "pointer-events-auto anim-rise flex w-full items-start gap-2.5 rounded-xl border bg-surface/95 p-3 shadow-pop backdrop-blur-sm",
               RING[t.kind],
             )}
           >

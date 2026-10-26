@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { ToastProvider } from "@/components/ui/Toast";
 import { AppProvider } from "@/lib/context/AppContext";
 import { cn } from "@/lib/utils";
+import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 /**
@@ -14,6 +15,7 @@ import { useEffect, useState, type ReactNode } from "react";
 export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
 
   // Đóng drawer khi nhấn Escape / quay về kích thước desktop
   useEffect(() => {
@@ -84,7 +86,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             id="main-content"
             className="mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 sm:py-6"
           >
-            {children}
+            {/* key = route → nội dung vào nhẹ sau mỗi lần chuyển trang */}
+            <div key={pathname} className="page-enter">
+              {children}
+            </div>
           </main>
         </div>
       </ToastProvider>
