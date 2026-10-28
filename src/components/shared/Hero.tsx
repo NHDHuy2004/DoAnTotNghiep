@@ -33,31 +33,31 @@ export function Hero({
   const parts = highlight && title.includes(highlight) ? title.split(highlight) : null;
 
   return (
-    <section className="anim-rise relative overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(135deg,#0b1f52_0%,#152e6e_38%,#2b2a72_72%,#3b1f6e_100%)] text-white shadow-[0_24px_50px_-32px_rgba(11,31,82,0.9)]">
-      {/* Trang trí: lưới + quáblobs trôi */}
+    <section className="grain anim-rise relative overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(135deg,#0d1c3d_0%,#14305f_42%,#1b4183_78%,#1f4496_100%)] text-white shadow-[0_24px_50px_-32px_rgba(13,28,61,0.9)]">
+      {/* Trang trí: lưới kỹ thuật + ba quầng sáng cùng sắc xanh */}
       <span
         aria-hidden
         className="grid-pattern pointer-events-none absolute inset-0 opacity-[0.35] [mask-image:radial-gradient(75%_75%_at_30%_35%,#000_25%,transparent_100%)]"
       />
-      <span aria-hidden className="orb -top-24 -left-10 size-72 bg-blue-500/50" />
-      <span aria-hidden className="orb -right-16 top-10 size-64 bg-violet-500/45" style={{ animationDelay: "-6s" }} />
-      <span aria-hidden className="orb bottom-[-7rem] left-1/3 size-56 bg-emerald-400/25" style={{ animationDelay: "-10s" }} />
+      <span aria-hidden className="orb -top-24 -left-10 size-72 bg-[#3a6ee0]/45" />
+      <span aria-hidden className="orb -right-16 top-10 size-64 bg-[#2a5cc9]/50" style={{ animationDelay: "-6s" }} />
+      <span aria-hidden className="orb bottom-[-7rem] left-1/3 size-56 bg-[#1f4496]/70" style={{ animationDelay: "-10s" }} />
 
-      <div className="relative px-5 py-6 sm:px-7 sm:py-7">
+      <div className="relative z-10 px-5 py-7 sm:px-7 sm:py-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 flex-1">
             {eyebrow && (
-              <p className="mb-2.5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-wider uppercase backdrop-blur-sm">
+              <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-wide text-blue-50 backdrop-blur-sm">
                 <span className="size-1.5 rounded-full bg-emerald-400 pulse-ring" aria-hidden />
                 {eyebrow}
               </p>
             )}
 
-            <h1 className="text-2xl leading-tight font-bold tracking-tight sm:text-3xl">
+            <h1 className="text-[26px] leading-[1.15] font-extrabold tracking-[-0.03em] sm:text-[34px]">
               {parts ? (
                 <>
                   {parts[0]}
-                  <span className="bg-gradient-to-r from-sky-300 via-indigo-200 to-fuchsia-300 bg-clip-text text-transparent">
+                  <span className="bg-gradient-to-r from-white via-[#cfe0ff] to-[#8fb4ff] bg-clip-text text-transparent">
                     {highlight}
                   </span>
                   {parts[1]}
@@ -68,7 +68,7 @@ export function Hero({
             </h1>
 
             {description && (
-              <p className="mt-2.5 max-w-2xl text-sm leading-relaxed text-blue-100/85">
+              <p className="mt-3 max-w-[64ch] text-sm leading-relaxed text-blue-100/85">
                 {description}
               </p>
             )}
@@ -109,7 +109,7 @@ export function Hero({
                         <span className="block truncate text-[11px] text-white/60">{s.hint}</span>
                       )}
                     </span>
-                    <span className="text-[10px] font-semibold tracking-wide uppercase opacity-70">
+                    <span className="text-[10px] font-semibold tracking-wide opacity-70">
                       {s.state === "done" ? "xong" : s.state === "active" ? "đang chạy" : "chờ"}
                     </span>
                   </li>

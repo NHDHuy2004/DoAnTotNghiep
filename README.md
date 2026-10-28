@@ -57,7 +57,7 @@ Quy tắc DEMO (một hàm dùng chung cho UI và services — `computeDemoMode`
 | 7 | `/history` | **Lịch sử thực thi** — danh sách phiên (DEMO: giữ trong phiên trình duyệt), lọc theo trạng thái. |
 | 8 | `/settings` | **Cài đặt** — trạng thái backend, URL hiệu lực, ghi đè URL, giải thích chế độ DEMO. |
 
-**Bố cục:** Shell mới — Sidebar gom nhóm theo route (Tổng quan · Dữ liệu · Thuật toán · Hệ thống), active indicator gradient có glow + thu gọn có tooltip; Header **kính mờ (glass)** có breadcrumb cấp nhóm và popover trạng thái backend; trang Tổng quan mở đầu bằng **Hero** (nền gradient tối + lưới kỹ thuật + quầng sáng trôi, pipeline 3 pha, CTA); các trang còn lại mở đầu bằng **PageHeader panel** (nền gradient mềm + orb trang trí). Nền canvas có quầng sáng cố định, surface trắng, primary xanh dương → chàm → tím; màu ngữ nghĩa ổn định (success/warning/danger/info, tím riêng cho DEMO). Responsive 1440/1280/768/390px; accessibility: skip-link, focus ring, bàn phím trên bảng/dialog, `aria-*` cho Tabs/tooltip; mọi chuyển động tôn trọng `prefers-reduced-motion`.
+**Bố cục:** Shell mới — Sidebar gom nhóm theo route (Tổng quan · Dữ liệu · Thuật toán · Hệ thống), active indicator gradient có glow + thu gọn có tooltip; Header **kính mờ (glass)** có breadcrumb cấp nhóm và popover trạng thái backend; trang Tổng quan mở đầu bằng **Hero** (nền gradient tối + lưới kỹ thuật + quầng sáng trôi, pipeline 3 pha, CTA); các trang còn lại mở đầu bằng **PageHeader panel** (nền gradient mềm + orb trang trí). Nền canvas `#f4f6fa` có quầng sáng cố định + lớp **grain** mỏng, surface trắng, primary là **MỘT sắc xanh** (`#2a5cc9` — không còn dải xanh→chàm→tím); màu ngữ nghĩa ổn định (success/warning/danger/info, tím riêng cho DEMO). Responsive 1440/1280/768/390px; accessibility: skip-link, focus ring, bàn phím trên bảng/dialog, `aria-*` cho Tabs/tooltip; mọi chuyển động tôn trọng `prefers-reduced-motion`.
 
 **States hiển thị ở mọi trang:** `loading` · `empty` · `error (+ Thử lại)` ·
 `validation` · `not-runed` (chưa chạy lần nào) · `running` · `completed` · `failed`.
@@ -66,7 +66,8 @@ Quy tắc DEMO (một hàm dùng chung cho UI và services — `computeDemoMode`
 
 ```
 src/
-├── app/                  # 8 trang + layout (App Router)
+├── app/                  # 8 trang + layout (App Router) + not-found.tsx (trang 404)
+│   └── icon.svg          # favicon SVG (thay icon turbo mặc định)
 ├── components/
 │   ├── shared/           # PageHeader (panel), Hero + HeroAction, DemoBanner
 │   ├── layout/           # AppShell, Sidebar, Header
@@ -75,6 +76,7 @@ src/
 │                         #   DataTable (+Pagination), Dialog/Drawer/ConfirmDialog,
 │                         #   Toast (+InlineAlert), Tabs, FilterBar (+SegmentedControl),
 │                         #   States (Skeleton/Empty/Error/NotReady), MetricTooltip,
+│                         #   Meta (khối "nhãn: giá trị" dùng chung),
 │                         #   Sidebar, Header, AppShell
 ├── hooks/
 │   ├── useAsync.ts       # loading/error/data — tự hủy request, SUY RA loading
@@ -108,14 +110,25 @@ docs/API_CONTRACT.md      # hợp đồng endpoint chờ backend
 | --- | --- |
 | `npx tsc --noEmit` | ✅ 0 lỗi |
 | `npx eslint .` | ✅ 0 lỗi, 0 warning |
-| `npm run build` | ✅ Compiled + 8 route tĩnh (`/`, `/transactions`, `/config`, `/execution`, `/dae-list`, `/results`, `/history`, `/settings`) |
-| Smoke test `next start` | ✅ 8/8 route HTTP 200, SSR HTML đúng nội dung từng trang |
+| `npm run build` | ✅ Compiled + 8 route tĩnh (`/`, `/transactions`, `/config`, `/execution`, `/dae-list`, `/results`, `/history`, `/settings`) + `/_not-found` + `/icon.svg` |
+| Smoke test `next start` | ✅ 8/8 route HTTP 200, SSR HTML đúng nội dung từng trang; `/nope-404` → 404; font Be Vietnam Pro/JetBrains Mono được serve (21 face `.woff2`, `font/woff2` 200) |
+
+> Lưu ý: `skills/` (taste-skill) bị loại khỏi `tsconfig.json` và `eslint.config.mjs` —
+> đó là mẫu tham khảo, không thuộc mã nguồn, để tránh báo lỗi sai.
 
 ## 7. Design system (tóm tắt)
 
-- **Tokens** (`globals.css` → `@theme`): `--color-canvas/surface/line/ink/brand/success/warning/danger/info/accent` + `--radius-card/lg/xl/2xl`, `--shadow-card/pop/lift/glow`, **gradient** (`--gradient-brand/brand-soft/success/warning/danger/ink`), **glass** (`--glass`, `--glass-strong`), **motion** (`--ease-out-quart`, `--dur-fast/base/slow`) + animation `.anim-fade/.anim-pop/.anim-rise/.anim-zoom/.anim-slide-in` có tôn trọng `prefers-reduced-motion`.
-- **Class dùng riêng (không phải Tailwind):** `.bg-grad-brand|-brand-soft|-success|-warning|-danger|-ink|-purple` (ghi rõ `background-image` — vì `bg-[var(--gradient-x)]` bị Tailwind suy luận thành `background-color` → gradient sẽ KHÔNG hiện), `.glass`/`.glass-strong`/`.glass-bar`, `.gradient-panel`, `.gradient-text`, `.card-hover`, `.sheen`, `.grid-pattern`, `.orb`, `.pulse-ring`, `.shimmer`, `.stagger` (stagger entrance), `.page-enter` (chuyển trang).
-- **Component chủ đạo:** `Hero` + `HeroAction` (trang Tổng quan), `PageHeader` dạng panel (7 trang còn lại), `Card(interactive)`, `StatCard` (chip icon gradient + thanh accent trên cùng + glow khi hover), `Button` gradient có sheen, `Tabs` dạng pill, `Dialog/Drawer` viền gradient trên, `Toast`/`EmptyState`/`NotReadyState` có gradient.
+- **Chữ:** **Be Vietnam Pro** (sans, dựng riêng cho tiếng Việt) + **JetBrains Mono** (số liệu/TID/công thức) — tự dựng qua `@fontsource`, không cần mạng lúc build. Heading weight 700, tracking `-0.02em`, `text-wrap: balance`; số liệu luôn `tabular-nums`; code nội tuyến là chip nền nhẹ có viền.
+- **Tokens** (`globals.css` → `@theme`):
+  - Màu: `--color-canvas/surface/surface-2/3`, `--color-line/line-2`, `--color-ink/ink-2/3`, `--color-brand/brand-2/brand-soft/brand-line` (**`#2a5cc9` — một sắc xanh duy nhất, không gradient đa sắc**), bộ ngữ nghĩa `success/warning/danger/info` (+ `-soft`/`-line`), `--color-accent` (**tím = chỉ dành cho nhãn DEMO**).
+  - Bán kính — thang 4 bậc thống nhất: `--radius-card`/`--radius-lg: 12px` (nút, ô nhập, card nhỏ), `--radius-xl: 16px` (card, panel), `--radius-2xl: 20px` (hero, dialog); badge dùng `rounded-md` kiểu cờ, **không** pill tròn.
+  - Bóng: `--shadow-card/pop/lift`, `--shadow-glow` (đổ bóng mang sắc độ nền, không dùng đen tuyền).
+  - Gradient (một dải sắc xanh `#3a6ee0 → #2a5cc9 → #1f4496`): `--gradient-brand/brand-soft/success/warning/danger/ink`, **chỉ dùng cho điểm nhấn**, không tô nền trang.
+  - Khác: `--glass/-strong/-border`, motion `--ease-out-quart/--ease-spring`, `--dur-fast/base/slow`; thang **z-index** (`:root`): `--z-sticky:30 · rail:40 · drawer:50 · modal:70 · toast:80 · tooltip:90 · skip:100` (dùng qua `z-[var(--z-…)]`, không dùng số tùy tiện); `--maxw-page:1440px`, `--measure:68ch`.
+- **Nền canvas:** hai **quầng sáng** cố định cùng sắc xanh (`body::before`, `z-index:-1`, không ảnh hưởng cuộn) + lớp **grain** mỏng phủ toàn khung (`body::after`); khối tối/panel dùng thêm `.grain` riêng (overlay blend, dưới nội dung).
+- **Class dùng riêng (không phải Tailwind):** `.bg-grad-brand|-brand-soft|-success|-warning|-danger|-ink|-purple` (ghi rõ `background-image` — vì `bg-[var(--gradient-x)]` bị Tailwind suy luận thành `background-color` → gradient sẽ KHÔNG hiện), `.glass`/`.glass-strong`/`.glass-bar`, `.gradient-panel`, `.gradient-text`, `.card-hover`, `.sheen`, `.grid-pattern`, `.orb`, `.pulse-ring`, `.shimmer`, `.grain`, `.stagger` (stagger entrance), `.page-enter` (chuyển trang).
+- **Component chủ đạo:** `Hero` + `HeroAction` (trang Tổng quan), `PageHeader` dạng panel (7 trang còn lại), `Card(interactive)`, `StatCard` (chip icon gradient + thanh accent trên cùng + glow khi hover), `Meta` (khối "nhãn: giá trị" hợp nhất — dùng chung cho transactions/results/dae-list/execution/history), `Button` gradient có sheen + `active:scale-[0.985]`, `Tabs` dạng pill, `Dialog/Drawer` viền gradient trên, `Toast`/`EmptyState`/`NotReadyState` có gradient; `MetricTooltip` popover sáng, tự kẹp trong viewport.
 - **Màu ngữ nghĩa cố định:** blue = brand/đang xử lý · green = đạt · amber = cảnh báo · red = lỗi · gray = trung tính · **purple = chỉ dành cho nhãn DEMO**.
+- **Nhãn dạng tiêu đề:** bảng/section dùng **sentence case** (`tracking-[0.01em]`), không ALL-CAPS.
 - **Tooltip công thức:** `src/lib/metrics.ts` là nguồn duy nhất (ae, dae, maeub, mdaeub, sae, sdae, smdaeub, tdaeub, stdaeub, ltdaeub, haei, expandable, f, minae, …); `MetricTooltip`/`ColumnHeader` render qua **portal** để không bị cắt bởi `overflow-x-auto` của bảng.
 - **Không fake data/progress:** mọi giá trị do service trả về; DEMO luôn gắn nhãn; lỗi backend → ErrorState + nút Thử lại. Hero chỉ hiển thị trạng thái pha từ `activeSession`, không bịa số.

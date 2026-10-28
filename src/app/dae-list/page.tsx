@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { Drawer } from "@/components/ui/Dialog";
 import { FilterBar, SegmentedControl } from "@/components/ui/FilterBar";
+import { MetaItem } from "@/components/ui/Meta";
 import { ColumnHeader } from "@/components/ui/MetricTooltip";
 import { EmptyState, ErrorState, LoadingState, TableSkeleton } from "@/components/ui/States";
 import { getDaeNode, listDaeNodes } from "@/lib/services/daeListService";
@@ -224,7 +225,7 @@ export default function DaeListPage() {
                 order: s.key === key && s.order === "asc" ? "desc" : "asc",
               }))
             }
-            maxHeight="65vh"
+            maxHeight="60vh"
             caption="Danh sách node DAE-List"
             emptyMessage="Không có node DAE-List nào khớp bộ lọc."
             emptyAction={
@@ -395,24 +396,24 @@ function DaeNodeDetail({
       {/* Cấp cửa sổ */}
       <section className="rounded-lg border border-line bg-surface-2/60 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[11px] font-semibold tracking-wider text-ink-3 uppercase">
+          <p className="text-[11px] font-semibold tracking-[0.01em] text-ink-3">
             Cấp cửa sổ (toàn cục)
           </p>
           <StatusBadge status={node.status} />
         </div>
         <dl className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-5">
-          <WinItem label="Inv" value={String(node.inv)} />
-          <WinItem label="PI" value={String(node.pi)} />
-          <WinItem label="Sdae" value={fmt(node.sdae)} highlight metricKey="sdae" />
-          <WinItem label="SMDAEUB" value={fmt(node.smdaeub)} metricKey="smdaeub" />
-          <WinItem label="STDAEUB" value={node.stdaeub !== undefined ? fmt(node.stdaeub) : "—"} metricKey="stdaeub" />
+          <MetaItem mono label="Inv" value={String(node.inv)} />
+          <MetaItem mono label="PI" value={String(node.pi)} />
+          <MetaItem mono label="Sdae" value={fmt(node.sdae)} emphasized metricKey="sdae" />
+          <MetaItem mono label="SMDAEUB" value={fmt(node.smdaeub)} metricKey="smdaeub" />
+          <MetaItem mono label="STDAEUB" value={node.stdaeub !== undefined ? fmt(node.stdaeub) : "—"} metricKey="stdaeub" />
         </dl>
       </section>
 
       {/* Cấp giao dịch */}
-      <section>
+      <section className="rounded-lg border border-line bg-surface-2/60 p-4">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[11px] font-semibold tracking-wider text-ink-3 uppercase">
+          <p className="text-[11px] font-semibold tracking-[0.01em] text-ink-3">
             Cấp giao dịch · {node.entries.length} entry
           </p>
           <SegmentedControl
@@ -439,7 +440,7 @@ function DaeNodeDetail({
         )}
       </section>
 
-      <p className="text-[11px] leading-relaxed text-ink-3">
+      <p className="border-t border-line pt-3 text-[11px] leading-relaxed text-ink-3">
         Nhấn mã TID để mở giao dịch nguồn. Ô “—” là giá trị backend chưa cung cấp cho entry đó
         (tài liệu ví dụ không nêu đầy đủ).
       </p>
@@ -447,31 +448,3 @@ function DaeNodeDetail({
   );
 }
 
-function WinItem({
-  label,
-  value,
-  highlight,
-  metricKey,
-}: {
-  label: string;
-  value: string;
-  highlight?: boolean;
-  metricKey?: Parameters<typeof ColumnHeader>[0]["metricKey"];
-}) {
-  return (
-    <div>
-      <dt className="flex items-center gap-1 text-[11px] text-ink-3">
-        {label}
-        {metricKey && <ColumnHeader label="" metricKey={metricKey} />}
-      </dt>
-      <dd
-        className={cn(
-          "font-mono",
-          highlight ? "text-lg font-bold text-brand" : "text-ink",
-        )}
-      >
-        {value}
-      </dd>
-    </div>
-  );
-}

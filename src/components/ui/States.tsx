@@ -49,7 +49,7 @@ export function StatSkeleton({ count = 4 }: { count?: number }) {
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-4" role="status" aria-label="Đang tải số liệu">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="rounded-card border border-line bg-surface p-4">
+        <div key={i} className="rounded-xl border border-line bg-surface p-4">
           <Skeleton className="h-3 w-24" />
           <Skeleton className="mt-4 h-7 w-20" />
           <Skeleton className="mt-2 h-3 w-28" />
@@ -89,7 +89,7 @@ export function EmptyState({
 }) {
   return (
     <div className="anim-fade flex flex-col items-center justify-center gap-2.5 px-4 py-14 text-center">
-      <span className="relative flex size-14 items-center justify-center rounded-2xl bg-grad-brand-soft text-brand shadow-[inset_0_0_0_1px_rgba(37,99,235,0.14)]">
+      <span className="relative flex size-14 items-center justify-center rounded-2xl bg-grad-brand-soft text-brand shadow-[inset_0_0_0_1px_rgba(42,92,201,0.14)]">
         <span
           aria-hidden
           className="absolute inset-0 rounded-2xl bg-grad-brand opacity-10 blur-xl"
@@ -147,7 +147,7 @@ export function NotReadyState({
 }) {
   return (
     <div className="anim-fade flex flex-col items-center justify-center gap-2.5 rounded-xl border border-dashed border-brand-line bg-grad-brand-soft px-4 py-14 text-center">
-      <span className="flex size-14 items-center justify-center rounded-2xl bg-grad-brand text-white shadow-[0_14px_28px_-16px_rgba(37,99,235,0.95)]">
+      <span className="flex size-14 items-center justify-center rounded-2xl bg-grad-brand text-white shadow-[0_14px_28px_-16px_rgba(42,92,201,0.95)]">
         <Construction size={24} />
       </span>
       <p className="text-sm font-semibold text-ink-2">{title}</p>

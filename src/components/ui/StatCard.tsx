@@ -6,43 +6,43 @@ import type { ReactNode } from "react";
 
 export type StatAccent = "blue" | "green" | "amber" | "red" | "gray" | "purple";
 
-/** Chip icon gradient + màu chữ tương ứng (mỗi accent một gradient cố định). */
+/** Chip icon gradient + màu chữ tương ứng (mỗi accent một gradient cùng sắc độ). */
 const ACCENTS: Record<StatAccent, { chip: string; text: string; bar: string; glow: string }> = {
   blue: {
-    chip: "bg-grad-brand text-white shadow-[0_8px_16px_-10px_rgba(37,99,235,0.95)]",
+    chip: "bg-grad-brand text-white shadow-[0_8px_16px_-10px_rgba(42,92,201,0.95)]",
     text: "text-brand",
-    bar: "from-blue-600 via-indigo-600 to-violet-600",
-    glow: "bg-blue-500/25",
+    bar: "from-[#3a6ee0] via-brand to-brand-2",
+    glow: "bg-brand/25",
   },
   green: {
     chip: "bg-grad-success text-white shadow-[0_8px_16px_-10px_rgba(4,120,87,0.95)]",
     text: "text-success",
-    bar: "from-emerald-500 to-teal-600",
-    glow: "bg-emerald-500/25",
+    bar: "from-[#16a07c] to-success",
+    glow: "bg-success/25",
   },
   amber: {
     chip: "bg-grad-warning text-white shadow-[0_8px_16px_-10px_rgba(180,83,9,0.95)]",
     text: "text-warning",
-    bar: "from-amber-400 to-orange-600",
-    glow: "bg-amber-500/25",
+    bar: "from-[#e59a33] to-warning",
+    glow: "bg-warning/25",
   },
   red: {
     chip: "bg-grad-danger text-white shadow-[0_8px_16px_-10px_rgba(185,28,28,0.95)]",
     text: "text-danger",
-    bar: "from-red-500 to-rose-700",
-    glow: "bg-red-500/25",
+    bar: "from-[#dc5050] to-danger",
+    glow: "bg-danger/25",
   },
   gray: {
     chip: "bg-grad-ink text-white shadow-[0_8px_16px_-10px_rgba(15,23,41,0.9)]",
     text: "text-ink-2",
-    bar: "from-slate-500 to-slate-700",
-    glow: "bg-slate-500/25",
+    bar: "from-ink-3 to-ink",
+    glow: "bg-ink-3/25",
   },
   purple: {
     chip: "bg-grad-purple text-white shadow-[0_8px_16px_-10px_rgba(109,40,217,0.95)]",
     text: "text-accent",
-    bar: "from-violet-500 to-purple-700",
-    glow: "bg-violet-500/25",
+    bar: "from-[#7d5ce0] to-accent",
+    glow: "bg-accent/25",
   },
 };
 
@@ -112,8 +112,8 @@ export function StatCard({
 
       <p
         className={cn(
-          "relative mt-3 font-semibold tracking-tight text-ink tabular-nums",
-          emphasized ? "text-[30px] leading-9" : "text-2xl leading-7",
+          "relative mt-3 font-semibold tracking-[-0.03em] text-ink tabular-nums",
+          emphasized ? "text-[32px] leading-9" : "text-[26px] leading-7",
         )}
       >
         {value}

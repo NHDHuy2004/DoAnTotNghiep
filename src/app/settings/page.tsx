@@ -1,8 +1,8 @@
 "use client";
 
-import { PageHeader } from "@/components/shared/PageHeader";
+import { DemoBanner, PageHeader } from "@/components/shared/PageHeader";
 import { Button, Input } from "@/components/ui/Controls";
-import { Card, CardBody, CardHeader, SectionLabel } from "@/components/ui/Card";
+import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Dot, StatusBadge } from "@/components/ui/Badge";
 import { InlineAlert, useToast } from "@/components/ui/Toast";
 import { useApp } from "@/lib/context/AppContext";
@@ -81,8 +81,15 @@ export default function SettingsPage() {
         }
       />
 
+      <DemoBanner source={demoMode ? "demo" : null} />
+
       {/* Thẻ trạng thái tổng quan */}
       <Card>
+        <CardHeader
+          title="Kết nối backend"
+          description="URL hiệu lực và trạng thái gọi API hiện tại."
+          icon={<Plug size={15} />}
+        />
         <CardBody className="flex flex-wrap items-center gap-x-6 gap-y-3">
           <div className="flex items-center gap-2.5">
             <span className="flex size-9 items-center justify-center rounded-lg bg-brand-soft text-brand">
@@ -218,18 +225,18 @@ export default function SettingsPage() {
         </CardBody>
       </Card>
 
-      <SectionLabel>Chú giải nhanh</SectionLabel>
       <Card>
-        <CardBody className="grid gap-3 text-xs leading-relaxed text-ink-2 sm:grid-cols-3">
-          <p>
+        <CardHeader title="Chú giải nhanh" description="Ba khái niệm thường gặp khi đọc giao diện." />
+        <CardBody className="grid gap-3 text-xs leading-relaxed text-ink-2 sm:grid-cols-[1.2fr_1fr_1fr] sm:gap-0 sm:divide-x sm:divide-line">
+          <p className="sm:pr-4">
             <strong className="text-ink">DEMO mode:</strong> dữ liệu minh họa tĩnh, dùng để demo
             giao diện khi backend chưa chạy.
           </p>
-          <p>
+          <p className="sm:px-4">
             <strong className="text-ink">Backend mode:</strong> mọi số liệu gọi từ API theo{" "}
             <code>docs/API_CONTRACT.md</code>.
           </p>
-          <p>
+          <p className="sm:pl-4">
             <strong className="text-ink">Ghi đè URL:</strong> lưu trên localStorage của trình duyệt
             hiện tại, không ảnh hưởng máy khác.
           </p>

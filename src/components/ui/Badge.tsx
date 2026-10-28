@@ -2,7 +2,9 @@ import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
 /**
- * Biến thể màu — NGỮ NGHĨA CỐ ĐỊNH xuyên suốt hệ thống:
+ * Badge dùng chung — kiểu "cờ" bo góc nhỏ (không phải viên thuốc tròn):
+ * luôn có viền + nền mềm, cao 20px, không dùng đổ bóng để tránh tạo nhãn giả.
+ * NGỮ NGHĨA CỐ ĐỊNH xuyên suốt hệ thống:
  * blue (brand) = thông tin/đang xử lý · green = đạt/hợp lệ · amber = cảnh báo/chờ ·
  * red = lỗi/không đạt · gray = trung tính · purple = chỉ dành cho nhãn DEMO ·
  * info = thông tin phụ.
@@ -34,7 +36,7 @@ export function Badge({
     <span
       title={title}
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] leading-5 font-medium whitespace-nowrap shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] transition-colors",
+        "inline-flex items-center gap-1 rounded-md border px-2 py-px text-[11px] leading-[18px] font-semibold whitespace-nowrap transition-colors",
         styles[variant],
         className,
       )}

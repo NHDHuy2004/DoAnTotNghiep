@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Controls";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { StatCard, StatInline } from "@/components/ui/StatCard";
 import { ChartSkeleton, EmptyState, ErrorState, StatSkeleton } from "@/components/ui/States";
+import { InlineAlert } from "@/components/ui/Toast";
 import { useApp } from "@/lib/context/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import { DEMO_DASHBOARD } from "@/lib/demo/demoData";
@@ -90,7 +91,7 @@ export default function DashboardPage() {
   }));
 
   return (
-    <div>
+    <div className="space-y-4">
       <Hero
         eyebrow={demo ? "Bản demo · dữ liệu minh họa" : "Nền tảng phân tích khai thác tập mục"}
         title="Tổng quan hệ thống HAEIM_Damped"
@@ -142,19 +143,19 @@ export default function DashboardPage() {
       <DemoBanner source={tx.source ?? null} />
 
       {backendStatus === "unreachable" && (
-        <div className="mb-4 rounded-card border border-danger-line bg-danger-soft px-3.5 py-2.5 text-xs text-danger">
-          Backend đang mất kết nối — số liệu trên trang có thể chưa được cập nhật.{" "}
+        <InlineAlert kind="error" title="Backend đang mất kết nối">
+          Số liệu trên trang có thể chưa được cập nhật.{" "}
           <Link href="/settings" className="font-semibold underline underline-offset-2">
             Kiểm tra cài đặt kết nối
           </Link>
           .
-        </div>
+        </InlineAlert>
       )}
 
       {loading && (
         <div className="space-y-4">
           <StatSkeleton count={4} />
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-4 lg:grid-cols-[1.15fr_1fr]">
             <Card><CardBody><ChartSkeleton /></CardBody></Card>
             <Card><CardBody><ChartSkeleton /></CardBody></Card>
           </div>
@@ -174,8 +175,8 @@ export default function DashboardPage() {
 
       {!loading && !error && (
         <div className="space-y-4">
-          {/* Chỉ số chính — phân cấp rõ với hàng thống kê phụ bên dưới */}
-          <div className="stagger grid grid-cols-2 gap-3 xl:grid-cols-4">
+          {/* Chỉ số chính — thẻ đầu rộng hơn (chỉ số nền), 3 thẻ còn lại đều nhau */}
+          <div className="stagger grid grid-cols-2 gap-3 xl:grid-cols-[1.5fr_1fr_1fr_1fr]">
             <StatCard
               label="Tổng số giao dịch"
               value={totalTransactions ?? "—"}
@@ -241,8 +242,8 @@ export default function DashboardPage() {
             </div>
           </Card>
 
-          {/* Biểu đồ */}
-          <div className="stagger grid gap-4 lg:grid-cols-2">
+          {/* Biểu đồ — lệch cột, tránh bố cục ba/hai cột đều nhau quen thuộc */}
+          <div className="stagger grid gap-4 lg:grid-cols-[1.15fr_1fr]">
             <Card>
               <CardHeader
                 title="Tổng tiện ích giao dịch theo TID"
@@ -270,8 +271,8 @@ export default function DashboardPage() {
                       <BarChart data={txRows} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
                         <defs>
                           <linearGradient id="tuGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#3b82f6" />
-                            <stop offset="100%" stopColor="#4338ca" />
+                            <stop offset="0%" stopColor="#3a6ee0" />
+                            <stop offset="100%" stopColor="#1f4496" />
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" vertical={false} />
@@ -288,7 +289,7 @@ export default function DashboardPage() {
                           axisLine={false}
                           width={52}
                         />
-                        <Tooltip content={<ChartTip unit="TU" />} cursor={{ fill: "#eef4ff" }} />
+                        <Tooltip content={<ChartTip unit="TU" />} cursor={{ fill: "#eef3fd" }} />
                         <Bar dataKey="value" name="TU" fill="url(#tuGrad)" radius={[6, 6, 0, 0]} maxBarSize={34} />
                       </BarChart>
                     </ResponsiveContainer>
@@ -327,7 +328,7 @@ export default function DashboardPage() {
                         <BarChart data={sdaeRows} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
                           <defs>
                             <linearGradient id="haeiGrad" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#34d399" />
+                              <stop offset="0%" stopColor="#16a07c" />
                               <stop offset="100%" stopColor="#047857" />
                             </linearGradient>
                             <linearGradient id="notHaeiGrad" x1="0" y1="0" x2="0" y2="1">
@@ -349,7 +350,7 @@ export default function DashboardPage() {
                             axisLine={false}
                             width={52}
                           />
-                          <Tooltip content={<ChartTip unit="Sdae" />} cursor={{ fill: "#eef4ff" }} />
+                          <Tooltip content={<ChartTip unit="Sdae" />} cursor={{ fill: "#eef3fd" }} />
                           {minae !== null && (
                             <ReferenceLine
                               y={minae}
@@ -374,7 +375,7 @@ export default function DashboardPage() {
                         <span className="size-2.5 rounded-sm bg-success" /> Đạt HAEI
                       </span>
                       <span className="inline-flex items-center gap-1.5">
-                        <span className="size-2.5 rounded-sm bg-slate-400" /> Chưa đạt
+                        <span className="size-2.5 rounded-sm bg-ink-3" /> Chưa đạt
                       </span>
                       <span className="inline-flex items-center gap-1.5">
                         <span className="h-0.5 w-4 bg-warning" /> Ngưỡng minae
@@ -400,7 +401,7 @@ export default function DashboardPage() {
                     <div className="overflow-x-auto">
                       <table className="w-full min-w-[520px] text-sm">
                         <thead>
-                          <tr className="border-b border-line text-left text-[11px] tracking-wide text-ink-3 uppercase">
+                          <tr className="border-b border-line text-left text-[11px] tracking-[0.01em] text-ink-3">
                             <th className="px-4 py-2.5 font-semibold">Pha</th>
                             <th className="px-4 py-2.5 text-right font-semibold">Vào</th>
                             <th className="px-4 py-2.5 text-right font-semibold">Ra</th>

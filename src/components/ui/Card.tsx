@@ -49,7 +49,7 @@ export function CardHeader({
     >
       <div className="flex min-w-0 items-start gap-2.5">
         {icon && (
-          <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-grad-brand text-white shadow-[0_6px_14px_-8px_rgba(37,99,235,0.9)]">
+          <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-grad-brand text-white shadow-[0_6px_14px_-8px_rgba(42,92,201,0.9)]">
             {icon}
           </span>
         )}
@@ -91,8 +91,6 @@ export function CardFooter({ className, children }: { className?: string; childr
 /** Nhãn (eyebrow) nhỏ phía trên tiêu đề section — dùng khi cần phân nhóm. */
 export function SectionLabel({ children }: { children: ReactNode }) {
   return (
-    <p className="mb-2 text-[11px] font-semibold tracking-wider text-ink-3 uppercase">
-      {children}
-    </p>
+    <p className="mb-2 text-[11px] font-semibold tracking-[0.01em] text-ink-3">{children}</p>
   );
 }

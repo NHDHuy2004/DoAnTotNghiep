@@ -6,6 +6,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -48,20 +49,49 @@ const RING: Record<ToastKind, string> = {
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);
   const seq = useRef(0);
+  /** Chuột/keyboard đang ở trên stack → không tự biến mất khi người dùng đang đọc. */
+  const paused = useRef(false);
+  const timers = useRef(new Map<number, number>());
 
   const dismiss = useCallback((id: number) => {
-    setItems((list) => list.filter((t) => t.id !== id));
+    const t = timers.current.get(id);
+    if (t) window.clearTimeout(t);
+    timers.current.delete(id);
+    setItems((list) => list.filter((t2) => t2.id !== id));
   }, []);
+
+  const schedule = useCallback(
+    function scheduleFn(id: number, delay: number) {
+      const t = window.setTimeout(() => {
+        if (paused.current) {
+          scheduleFn(id, 1500); // hoãn tới khi người dùng rời chuột
+          return;
+        }
+        dismiss(id);
+      }, delay);
+      timers.current.set(id, t);
+    },
+    [dismiss],
+  );
 
   const push = useCallback(
     (kind: ToastKind, title: string, description?: string) => {
       seq.current += 1;
       const id = seq.current;
       setItems((list) => [...list.slice(-3), { id, kind, title, description }]);
-      window.setTimeout(() => dismiss(id), kind === "error" ? 8000 : 4500);
+      schedule(id, kind === "error" ? 8000 : 4500);
     },
-    [dismiss],
+    [schedule],
   );
+
+  // Dọn timer khi unmount (không để setTimeout mồ côi).
+  useEffect(() => {
+    const map = timers.current;
+    return () => {
+      map.forEach((t) => window.clearTimeout(t));
+      map.clear();
+    };
+  }, []);
 
   const api = useMemo<ToastApi>(
     () => ({
@@ -76,16 +106,28 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <Ctx.Provider value={api}>
       {children}
       <div
-        className="pointer-events-none fixed inset-x-3 bottom-3 z-[80] flex flex-col items-end gap-2 sm:inset-x-auto sm:right-5 sm:bottom-5 sm:w-[360px]"
+        className="pointer-events-none fixed inset-x-3 bottom-3 z-[var(--z-toast)] flex flex-col items-end gap-2 sm:inset-x-auto sm:right-5 sm:bottom-5 sm:w-[360px]"
         role="status"
         aria-live="polite"
         aria-atomic="false"
+        onMouseEnter={() => {
+          paused.current = true;
+        }}
+        onMouseLeave={() => {
+          paused.current = false;
+        }}
+        onFocusCapture={() => {
+          paused.current = true;
+        }}
+        onBlurCapture={() => {
+          paused.current = false;
+        }}
       >
         {items.map((t) => (
           <div
             key={t.id}
             className={cn(
-              "pointer-events-auto anim-rise flex w-full items-start gap-2.5 rounded-xl border bg-surface/95 p-3 shadow-pop backdrop-blur-sm",
+              "pointer-events-auto anim-rise flex w-full items-start gap-2.5 rounded-xl border bg-surface/95 p-3 shadow-pop backdrop-blur-sm transition-shadow hover:shadow-lift",
               RING[t.kind],
             )}
           >

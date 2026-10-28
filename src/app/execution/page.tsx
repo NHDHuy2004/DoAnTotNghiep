@@ -6,11 +6,12 @@ import { Badge, StatusBadge } from "@/components/ui/Badge";
 import { Button, Select } from "@/components/ui/Controls";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Dialog, Drawer } from "@/components/ui/Dialog";
-import { ColumnHeader, MetricTooltip } from "@/components/ui/MetricTooltip";
+import { ColumnHeader } from "@/components/ui/MetricTooltip";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { SegmentedControl } from "@/components/ui/FilterBar";
 import { EmptyState, ErrorState, LoadingState, NotReadyState } from "@/components/ui/States";
 import { TabPanel, Tabs } from "@/components/ui/Tabs";
+import { MetaItem } from "@/components/ui/Meta";
 import { useApp } from "@/lib/context/AppContext";
 import {
   getConstructionTrace,
@@ -224,7 +225,7 @@ export default function ExecutionPage() {
 
       {activeSession && (
         <div className="space-y-4">
-          {/* Pipeline 3 pha — trực quan hóa trạng thái từng bước */}
+          {/* Pipeline 3 pha — thẻ rộng đều nhau, connector đặt riêng nên không làm lệch bề rộng */}
           <div className="stagger grid gap-3 lg:grid-cols-3">
             {PHASE_ORDER.map((phase, i) => (
               <div key={phase} className="flex items-stretch gap-3">
@@ -242,11 +243,16 @@ export default function ExecutionPage() {
                         : expansion.reload
                   }
                 />
-                {i < 2 && (
-                  <span aria-hidden className="hidden shrink-0 items-center text-ink-3/50 lg:flex">
-                    <ChevronRight size={18} />
-                  </span>
-                )}
+                {/* Cột nối: thẻ cuối cũng giữ chỗ (invisible) để ba thẻ bằng nhau */}
+                <span
+                  aria-hidden
+                  className={cn(
+                    "hidden w-4 shrink-0 items-center justify-center text-ink-3/60 lg:flex",
+                    i === PHASE_ORDER.length - 1 && "invisible",
+                  )}
+                >
+                  <ChevronRight size={16} />
+                </span>
               </div>
             ))}
           </div>
@@ -396,13 +402,14 @@ function PhaseCard({
         </button>
         <span className="flex shrink-0 flex-col items-end gap-2">
           {phaseIcon(status)}
-          <button
-            type="button"
+          <Button
+            variant="link"
+            size="sm"
             onClick={onRefresh}
-            className="text-[11px] text-brand transition-colors hover:underline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand"
+            className="h-auto px-0 text-[11px]"
           >
             làm mới
-          </button>
+          </Button>
         </span>
       </CardBody>
     </Card>
@@ -449,7 +456,7 @@ function ConstructionSection({
   return (
     <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
       <div>
-        <p className="mb-1.5 text-[11px] font-semibold tracking-wider text-ink-3 uppercase">
+        <p className="mb-1.5 text-[11px] font-semibold tracking-[0.01em] text-ink-3">
           Giao dịch ({data.steps.length})
         </p>
         <ul className="max-h-80 space-y-0.5 overflow-y-auto pr-1">
@@ -484,7 +491,7 @@ function ConstructionSection({
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[520px] text-sm">
                   <thead>
-                    <tr className="border-b border-line bg-surface-2 text-left text-[11px] tracking-wide text-ink-3 uppercase">
+                    <tr className="border-b border-line bg-surface-2 text-left text-[11px] tracking-[0.01em] text-ink-3">
                       <th className="px-3 py-2.5 font-semibold">Mục</th>
                       <th className="px-3 py-2.5 text-right font-semibold">
                         <ColumnHeader label="u" metricKey="u" />
@@ -522,7 +529,7 @@ function ConstructionSection({
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-lg border border-line bg-surface-2/60 p-3">
-              <p className="text-[11px] font-semibold tracking-wider text-ink-3 uppercase">
+              <p className="text-[11px] font-semibold tracking-[0.01em] text-ink-3">
                 Node DAE-List mới tạo
               </p>
               {step.newNodes.length === 0 ? (
@@ -538,7 +545,7 @@ function ConstructionSection({
               )}
             </div>
             <div className="rounded-lg border border-line bg-surface-2/60 p-3">
-              <p className="text-[11px] font-semibold tracking-wider text-ink-3 uppercase">
+              <p className="text-[11px] font-semibold tracking-[0.01em] text-ink-3">
                 Entry vừa thêm ({step.entriesAdded.length})
               </p>
               {step.entriesAdded.length === 0 ? (
@@ -662,7 +669,7 @@ function RestructureSection({
         <div className="grid gap-4 xl:grid-cols-2">
           <div className="min-w-0 space-y-4">
             <div>
-              <p className="mb-1.5 text-[11px] font-semibold tracking-wider text-ink-3 uppercase">
+              <p className="mb-1.5 text-[11px] font-semibold tracking-[0.01em] text-ink-3">
                 Ứng viên giữ lại ({data.kept.length}) — sắp xếp tăng dần SMDAEUB
               </p>
               <DataTable
@@ -678,7 +685,7 @@ function RestructureSection({
             </div>
             {data.removed.length > 0 && (
               <div>
-                <p className="mb-1.5 text-[11px] font-semibold tracking-wider text-danger uppercase">
+                <p className="mb-1.5 text-[11px] font-semibold tracking-[0.01em] text-danger">
                   Bị loại ({data.removed.length}) — SMDAEUB &lt; minae
                 </p>
                 <DataTable
@@ -694,7 +701,7 @@ function RestructureSection({
           </div>
 
           <div className="min-w-0">
-            <p className="mb-1.5 text-[11px] font-semibold tracking-wider text-ink-3 uppercase">
+            <p className="mb-1.5 text-[11px] font-semibold tracking-[0.01em] text-ink-3">
               Entry cấp giao dịch
             </p>
             {node ? (
@@ -852,10 +859,10 @@ function ExpansionSection({
     <div className="space-y-4">
       <div className="grid gap-4 xl:grid-cols-[minmax(300px,1fr)_1.2fr]">
         <div className="min-w-0">
-          <p className="mb-1.5 text-[11px] font-semibold tracking-wider text-ink-3 uppercase">
+          <p className="mb-1.5 text-[11px] font-semibold tracking-[0.01em] text-ink-3">
             Cây DFS tập mục
           </p>
-          <div className="max-h-[480px] overflow-auto rounded-lg border border-line bg-surface-2/50 p-2">
+          <div className="max-h-[30rem] overflow-auto rounded-lg border border-line bg-surface-2/50 p-2">
             {data.roots.map((n) => (
               <DfsTreeNode
                 key={n.id}
@@ -872,7 +879,7 @@ function ExpansionSection({
             <LegendDot color="bg-brand" label="đang chọn" />
             <LegendDot color="bg-success" label="đủ điều kiện HAEI" />
             <LegendDot color="bg-danger" label="bị cắt tỉa / loại" />
-            <LegendDot color="bg-slate-400" label="không mở rộng thêm" />
+            <LegendDot color="bg-ink-3" label="không mở rộng thêm" />
           </div>
           {demoMode && (
             <p className="mt-2 rounded-lg border border-accent-line bg-accent-soft/60 p-2.5 text-[11px] leading-relaxed text-accent">
@@ -883,7 +890,7 @@ function ExpansionSection({
         </div>
 
         <div className="min-w-0">
-          <p className="mb-1.5 text-[11px] font-semibold tracking-wider text-ink-3 uppercase">
+          <p className="mb-1.5 text-[11px] font-semibold tracking-[0.01em] text-ink-3">
             Chi tiết node
           </p>
           {!selected ? (
@@ -973,7 +980,7 @@ function DfsTreeNode({
           <span
             className={cn(
               "size-2 shrink-0 rounded-full",
-              node.isHaei ? "bg-success" : node.pruneReason ? "bg-danger" : "bg-slate-400",
+              node.isHaei ? "bg-success" : node.pruneReason ? "bg-danger" : "bg-ink-3",
             )}
           />
           <span className="font-mono font-semibold">{fmtItemset(node.itemset)}</span>
@@ -1024,9 +1031,9 @@ function NodeDetail({ node }: { node: ExpansionNode }) {
           )}
         </div>
         <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
-          <DetailItem label="Sdae" value={fmt(node.sdae)} mono metricKey="sdae" />
-          <DetailItem label="STDAEUB" value={fmt(node.stdaeub)} mono metricKey="stdaeub" />
-          <DetailItem label="LTDAEUB" value={fmt(node.ltdaeub)} mono metricKey="ltdaeub" />
+          <MetaItem label="Sdae" value={fmt(node.sdae)} mono metricKey="sdae" />
+          <MetaItem label="STDAEUB" value={fmt(node.stdaeub)} mono metricKey="stdaeub" />
+          <MetaItem label="LTDAEUB" value={fmt(node.ltdaeub)} mono metricKey="ltdaeub" />
         </dl>
         {node.pruneReason && (
           <p className="mt-3 rounded-md border border-danger-line bg-danger-soft px-2.5 py-1.5 text-xs text-danger">
@@ -1037,50 +1044,28 @@ function NodeDetail({ node }: { node: ExpansionNode }) {
 
       {node.merge && (
         <div className="rounded-lg border border-line p-3.5">
-          <p className="text-[11px] font-semibold tracking-wider text-ink-3 uppercase">
+          <p className="text-[11px] font-semibold tracking-[0.01em] text-ink-3">
             Kết quả ghép DAE-List
           </p>
           <p className="mt-1.5 font-mono text-sm text-ink">
             {fmtItemset(node.merge.left)} ∪ {fmtItemset(node.merge.right)}
           </p>
           <dl className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <DetailItem
+            <MetaItem
               label="TID đồng xuất hiện"
               value={node.merge.coOccurTids.map((t) => `T${t}`).join(", ")}
             />
-            <DetailItem
+            <MetaItem
               label="u từng giao dịch"
               value={`(${node.merge.utilities.join(", ")})`}
               mono
             />
-            <DetailItem label="Sdae" value={fmt(node.merge.sdae)} mono metricKey="sdae" />
-            <DetailItem label="STDAEUB" value={fmt(node.merge.stdaeub)} mono metricKey="stdaeub" />
-            <DetailItem label="LTDAEUB" value={fmt(node.merge.ltdaeub)} mono metricKey="ltdaeub" />
+            <MetaItem label="Sdae" value={fmt(node.merge.sdae)} mono metricKey="sdae" />
+            <MetaItem label="STDAEUB" value={fmt(node.merge.stdaeub)} mono metricKey="stdaeub" />
+            <MetaItem label="LTDAEUB" value={fmt(node.merge.ltdaeub)} mono metricKey="ltdaeub" />
           </dl>
         </div>
       )}
-    </div>
-  );
-}
-
-function DetailItem({
-  label,
-  value,
-  mono,
-  metricKey,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-  metricKey?: Parameters<typeof MetricTooltip>[0]["metricKey"];
-}) {
-  return (
-    <div>
-      <dt className="flex items-center gap-1 text-[11px] text-ink-3">
-        {label}
-        {metricKey && <MetricTooltip metricKey={metricKey} />}
-      </dt>
-      <dd className={cn("text-ink", mono && "font-mono")}>{value}</dd>
     </div>
   );
 }
@@ -1116,7 +1101,7 @@ function LogsDrawer({
           label="Mức độ"
           value={level}
           onChange={(e) => setLevel(e.target.value as typeof level)}
-          className="w-36"
+          className="w-full sm:w-36"
           name="log-level"
         >
           <option value="all">Tất cả</option>
@@ -1128,7 +1113,7 @@ function LogsDrawer({
           label="Pha"
           value={phase}
           onChange={(e) => setPhase(e.target.value as typeof phase)}
-          className="w-44"
+          className="w-full sm:w-44"
           name="log-phase"
         >
           <option value="all">Tất cả pha</option>
@@ -1152,7 +1137,7 @@ function LogsDrawer({
       )}
       {!loading && !error && filtered.length > 0 && (
         <div className="overflow-hidden rounded-lg border border-line">
-          <ul className="max-h-[55vh] divide-y divide-line overflow-y-auto font-mono text-xs">
+          <ul className="max-h-[60vh] divide-y divide-line overflow-y-auto font-mono text-xs">
             {filtered.map((l) => (
               <li key={l.seq} className="flex gap-2.5 px-3 py-2">
                 <span className="shrink-0 text-ink-3">#{l.seq}</span>
@@ -1199,7 +1184,7 @@ function GlossaryDialog({ open, onClose }: { open: boolean; onClose: () => void 
               <code className="rounded bg-surface-3 px-1.5 py-0.5 text-[11px] text-ink-3">{key}</code>
             </div>
             {m.formula && (
-              <code className="mt-1.5 block rounded bg-slate-900 px-2 py-1.5 text-[11px] break-all text-blue-200">
+              <code className="mt-1.5 block rounded-md border border-line bg-surface-3 px-2 py-1.5 font-mono text-[11px] break-all text-ink">
                 {m.formula}
               </code>
             )}

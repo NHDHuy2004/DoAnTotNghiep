@@ -34,13 +34,21 @@ function useTipAnchor(open: boolean, side: "top" | "right" | "bottom") {
     if (!el) return;
     const r = el.getBoundingClientRect();
     if (side === "right") {
-      setAnchor({ top: r.top + r.height / 2, left: r.right + 10, above: false });
+      // Không tràn mép phải: tooltip rộng tới 280px → lùi lại nếu sắp vượt màn hình.
+      const left = Math.max(8, Math.min(r.right + 10, window.innerWidth - 300));
+      setAnchor({ top: r.top + r.height / 2, left, above: false });
       return;
     }
     const above = side === "top" || r.bottom + 240 > window.innerHeight;
+    // Căn giữa theo icon nhưng luôn giữ 140px mỗi bên (tooltip `translateX(-50%)`).
+    const half = Math.min(140, window.innerWidth / 2 - 8);
+    const left = Math.min(
+      Math.max(r.left + r.width / 2, half),
+      window.innerWidth - half,
+    );
     setAnchor({
       top: above ? r.top - 8 : r.bottom + 8,
-      left: r.left + r.width / 2,
+      left,
       above,
     });
   }, [side]);
@@ -91,7 +99,7 @@ function TipBox({
       role="tooltip"
       style={style}
       className={cn(
-        "fixed z-[90] w-[280px] rounded-lg border border-slate-700 bg-slate-900 p-3 text-left text-xs text-slate-100 shadow-pop",
+        "fixed z-[var(--z-tooltip)] w-[min(280px,calc(100vw-2rem))] rounded-lg border border-line bg-surface p-3 text-left text-xs text-ink shadow-pop",
         className,
       )}
     >
@@ -148,13 +156,13 @@ export function MetricTooltip({
       </button>
       {open && anchor && (
         <TipBox anchor={anchor} side="bottom">
-          <span className="block font-semibold text-white">{label}</span>
+          <span className="block font-semibold text-ink">{label}</span>
           {f && (
-            <code className="mt-1.5 block rounded bg-slate-800 px-2 py-1.5 text-[11px] break-all text-blue-200">
+            <code className="mt-1.5 block rounded-md border border-brand-line bg-brand-soft px-2 py-1.5 font-mono text-[11px] break-all text-brand">
               {f}
             </code>
           )}
-          <span className="mt-1.5 block leading-relaxed text-slate-300">{d}</span>
+          <span className="mt-1.5 block leading-relaxed text-ink-2">{d}</span>
         </TipBox>
       )}
     </span>

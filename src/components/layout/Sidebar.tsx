@@ -36,7 +36,7 @@ export function Sidebar({
     >
       {/* Thương hiệu — cùng chiều cao với Header để thẳng hàng */}
       <div className={cn("flex h-14 shrink-0 items-center gap-2.5 border-b border-white/70", isCollapsed ? "justify-center px-2" : "px-4")}>
-        <span className="relative flex size-9 shrink-0 items-center justify-center rounded-xl bg-grad-brand text-white shadow-[0_6px_16px_-6px_rgba(37,99,235,0.85)]">
+        <span className="relative flex size-9 shrink-0 items-center justify-center rounded-xl bg-grad-brand text-white shadow-[0_6px_16px_-6px_rgba(42,92,201,0.85)]">
           <FlaskConical size={18} />
         </span>
         {!isCollapsed && (
@@ -55,7 +55,7 @@ export function Sidebar({
         {NAV_GROUPS.map((group) => (
           <div key={group.label} className="mb-1.5 last:mb-0">
             {!isCollapsed && (
-              <p className="px-3 pt-3 pb-1.5 text-[10px] font-semibold tracking-wider text-ink-3 uppercase">
+              <p className="px-3 pt-3 pb-1.5 text-[11px] font-semibold tracking-[0.01em] text-ink-3">
                 {group.label}
               </p>
             )}
@@ -76,14 +76,14 @@ export function Sidebar({
                       "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand",
                       isCollapsed ? "h-9 justify-center px-0" : "px-3",
                       active
-                        ? "bg-grad-brand-soft text-brand shadow-[inset_0_0_0_1px_rgba(37,99,235,0.14)]"
+                        ? "bg-grad-brand-soft text-brand shadow-[inset_0_0_0_1px_rgba(42,92,201,0.14)]"
                         : "text-ink-2 hover:translate-x-0.5 hover:bg-white/70 hover:text-ink",
                     )}
                   >
                     {active && (
                       <span
                         aria-hidden
-                        className="absolute -left-2 top-1/2 h-6 w-1.5 -translate-y-1/2 rounded-r-full bg-grad-brand shadow-[0_0_10px_rgba(37,99,235,0.65)]"
+                        className="absolute -left-2 top-1/2 h-6 w-1.5 -translate-y-1/2 rounded-r-full bg-grad-brand shadow-[0_0_10px_rgba(42,92,201,0.65)]"
                       />
                     )}
                     <Icon

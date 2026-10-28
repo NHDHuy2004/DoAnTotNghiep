@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { DataTable, Pagination, type Column } from "@/components/ui/DataTable";
 import { Dialog, Drawer } from "@/components/ui/Dialog";
 import { FilterBar } from "@/components/ui/FilterBar";
+import { MetaItem } from "@/components/ui/Meta";
 import { ErrorState, LoadingState, TableSkeleton } from "@/components/ui/States";
 import { InlineAlert, useToast } from "@/components/ui/Toast";
 import {
@@ -280,15 +281,15 @@ function TransactionDetailDrawer({ tid, onClose }: { tid: number | null; onClose
       {detail.data && (
         <div className="space-y-4">
           <dl className="grid grid-cols-3 gap-3">
-            <MetaBox label="TID" value={`T${detail.data.tid}`} mono />
-            <MetaBox label="TU" value={String(detail.data.tu)} mono />
-            <MetaBox label="Số mục" value={String(detail.data.items.length)} mono />
+            <MetaItem variant="boxed" label="TID" value={`T${detail.data.tid}`} mono />
+            <MetaItem variant="boxed" label="TU" value={String(detail.data.tu)} mono />
+            <MetaItem variant="boxed" label="Số mục" value={String(detail.data.items.length)} mono />
           </dl>
 
           <div className="overflow-hidden rounded-lg border border-line">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-line bg-surface-2 text-left text-[11px] tracking-wide text-ink-3 uppercase">
+                <tr className="border-b border-line bg-surface-2 text-left text-[11px] tracking-[0.01em] text-ink-3">
                   <th className="px-3 py-2 font-semibold">Mục</th>
                   <th className="px-3 py-2 text-right font-semibold">Quantity</th>
                   <th className="px-3 py-2 text-right font-semibold">Utility</th>
@@ -319,15 +320,6 @@ function TransactionDetailDrawer({ tid, onClose }: { tid: number | null; onClose
         </div>
       )}
     </Drawer>
-  );
-}
-
-function MetaBox({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div className="rounded-lg border border-line bg-surface-2 px-3 py-2">
-      <dt className="text-[11px] text-ink-3">{label}</dt>
-      <dd className={`mt-0.5 text-sm font-semibold text-ink ${mono ? "font-mono" : ""}`}>{value}</dd>
-    </div>
   );
 }
 

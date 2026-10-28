@@ -43,21 +43,21 @@ export function AppShell({ children }: { children: ReactNode }) {
       <ToastProvider>
         <a
           href="#main-content"
-          className="sr-only rounded-lg bg-surface px-4 py-2 text-sm font-medium text-brand shadow-pop focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100]"
+          className="sr-only rounded-lg bg-surface px-4 py-2 text-sm font-medium text-brand shadow-pop focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[var(--z-skip)]"
         >
           Bỏ qua đến nội dung chính
         </a>
 
         {/* Sidebar desktop */}
-        <div className="fixed inset-y-0 left-0 z-40 hidden lg:block">
+        <div className="fixed inset-y-0 left-0 z-[var(--z-rail)] hidden lg:block">
           <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
         </div>
 
         {/* Drawer mobile */}
         {mobileOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="fixed inset-0 z-[var(--z-drawer)] lg:hidden">
             <div
-              className="anim-fade absolute inset-0 bg-slate-900/45 backdrop-blur-[2px]"
+              className="anim-fade absolute inset-0 bg-ink/45 backdrop-blur-[2px]"
               onClick={() => setMobileOpen(false)}
               aria-hidden
             />

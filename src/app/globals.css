@@ -2,21 +2,23 @@
 
 /* =========================================================================
    DESIGN SYSTEM — HAEIM_Damped
-   Modern Analytics Dashboard / Professional Research Platform
-   - Nền xám rất nhạt, surface trắng, primary xanh dương/navy.
+   Research data console — nền xám xanh rất nhạt, surface trắng,
+   MỘT màu chủ đạo (xanh chín, bão hòa giảm) — không dùng gradient đa sắc.
    - Mỗi màu có nghĩa cố định xuyên suốt hệ thống (không dùng màu tùy tiện).
+   - Bộ ấm (success/warning/danger) và bộ trung tính lạnh giữ nguyên ngữ nghĩa.
    ========================================================================= */
 @theme {
-  /* Font hỗ trợ tiếng Việt tốt trên mọi hệ điều hành */
+  /* Font có cá tính + dựng riêng cho tiếng Việt (dựng local qua @fontsource,
+     không cần mạng lúc build). JetBrains Mono cho số liệu, TID, công thức. */
   --font-sans:
-    "Segoe UI", ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", Arial,
+    "Be Vietnam Pro", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
     "Noto Sans", sans-serif;
   --font-mono:
-    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
-    "Liberation Mono", monospace;
+    "JetBrains Mono Variable", ui-monospace, SFMono-Regular, "SF Mono", Menlo,
+    Consolas, "Liberation Mono", monospace;
 
   /* Nền & bề mặt */
-  --color-canvas: #f5f7fa;
+  --color-canvas: #f4f6fa;
   --color-surface: #ffffff;
   --color-surface-2: #f8fafc;
   --color-surface-3: #eef2f7;
@@ -30,11 +32,11 @@
   --color-ink-2: #46566d;
   --color-ink-3: #77879d;
 
-  /* Primary — xanh dương / navy */
-  --color-brand: #1d4ed8;
-  --color-brand-2: #1e40af;
-  --color-brand-soft: #eef4ff;
-  --color-brand-line: #cadcff;
+  /* Primary — MỘT sắc xanh duy nhất, bão hòa ~65% (không còn vệt xanh→chàm→tím) */
+  --color-brand: #2a5cc9;
+  --color-brand-2: #1e4aa8;
+  --color-brand-soft: #eef3fd;
+  --color-brand-line: #c8d8f5;
 
   /* Ngữ nghĩa trạng thái */
   --color-success: #047857;
@@ -58,22 +60,24 @@
   --color-accent-soft: #f5f3ff;
   --color-accent-line: #ddd6fe;
 
-  /* Bán kính & đổ bóng thống nhất */
+  /* Bán kính & đổ bóng thống nhất — thang 4 bậc: 6 (badge/nhãn) · 12 (nút, ô nhập,
+     khối nhỏ = card) · 16 (card, panel) · 20 (hero, dialog, drawer) */
   --radius-card: 12px;
-  --radius-lg: 14px;
-  --radius-xl: 18px;
-  --radius-2xl: 24px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
   --shadow-card: 0 1px 2px rgba(15, 23, 41, 0.04), 0 1px 3px rgba(15, 23, 41, 0.05);
   --shadow-pop: 0 10px 30px rgba(15, 23, 41, 0.12), 0 2px 8px rgba(15, 23, 41, 0.06);
 
-  /* ===== Makeover — gradient, glass, elevation ===== */
-  /* Gradient chính (brand → indigo → tím) — chỉ dùng cho điểm nhấn, không tô nền trang */
-  --gradient-brand: linear-gradient(135deg, #2563eb 0%, #4f46e5 52%, #7c3aed 100%);
-  --gradient-brand-soft: linear-gradient(135deg, #eff6ff 0%, #eef2ff 55%, #f5f3ff 100%);
-  --gradient-success: linear-gradient(135deg, #10b981 0%, #047857 100%);
-  --gradient-warning: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
-  --gradient-danger: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
-  --gradient-ink: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+  /* ===== Bề mặt & độ sâu — MỘT sắc độ duy nhất, không trộn sắc tím ===== */
+  /* Gradient chính: dải cùng một sắc xanh (sáng → đậm) — chỉ dùng cho điểm
+     nhấn (nút, chip icon, indicator), không tô nền trang. */
+  --gradient-brand: linear-gradient(135deg, #3a6ee0 0%, #2a5cc9 55%, #1f4496 100%);
+  --gradient-brand-soft: linear-gradient(135deg, #f1f5fe 0%, #ecf2fd 55%, #f4f7fd 100%);
+  --gradient-success: linear-gradient(135deg, #16a07c 0%, #047857 100%);
+  --gradient-warning: linear-gradient(135deg, #e59a33 0%, #b45309 100%);
+  --gradient-danger: linear-gradient(135deg, #dc5050 0%, #b91c1c 100%);
+  --gradient-ink: linear-gradient(135deg, #101a2e 0%, #334155 100%);
   /* Viền sáng cho panel kính */
   --gradient-line: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.2));
 
@@ -84,7 +88,8 @@
 
   /* Elevations mới */
   --shadow-lift: 0 18px 40px -22px rgba(15, 23, 41, 0.35), 0 6px 16px -10px rgba(15, 23, 41, 0.18);
-  --shadow-glow: 0 0 0 1px rgba(37, 99, 235, 0.14), 0 14px 34px -18px rgba(37, 99, 235, 0.55);
+  /* Bóng mang theo sắc độ nền (không dùng đen tuyền) */
+  --shadow-glow: 0 0 0 1px rgba(42, 92, 201, 0.16), 0 14px 34px -18px rgba(42, 92, 201, 0.5);
   --shadow-glow-success: 0 14px 34px -18px rgba(4, 120, 87, 0.55);
   --shadow-inset-soft: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 
@@ -100,24 +105,58 @@ html {
   scroll-behavior: smooth;
 }
 
+/* ===== Thang z-index duy nhất — không dùng số tùy tiện (9999, …) ===== */
+:root {
+  --z-sticky: 30; /* header dính */
+  --z-rail: 40; /* sidebar + popover trạng thái */
+  --z-drawer: 50; /* overlay menu mobile */
+  --z-modal: 70; /* dialog / drawer nội dung */
+  --z-toast: 80;
+  --z-tooltip: 90;
+  --z-skip: 100; /* skip-link */
+  --maxw-page: 1440px;
+  --measure: 68ch; /* bề rộng tối đa của một đoạn văn ≈ 68 ký tự */
+}
+
 body {
   background-color: var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-sans);
   font-size: 15px;
-  line-height: 1.55;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-/* Phân cấp heading nhất quán */
+/* Phân cấp heading: nặng hơn, siết tracking — tiêu đề phải "có lực" */
 h1,
 h2,
 h3,
 h4 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+  text-wrap: balance;
+}
+h5,
+h6 {
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: var(--color-ink);
+}
+
+/* Đoạn văn: chặn câu mồ côi xuống dòng cuối, bề rộng đọc được */
+p {
+  text-wrap: pretty;
+}
+
+/* Mã nội tuyến (env, tên file, tham số): chip nền nhẹ — thống nhất mọi trang */
+:not(pre) > code {
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  background: var(--color-surface-3);
+  padding: 0.1em 0.4em;
+  font-size: 0.9em;
+  font-family: var(--font-mono);
 }
 
 /* Giá trị số, công thức, TID: dễ quét bằng mắt */
@@ -228,7 +267,8 @@ pre {
    Mọi class đều tôn trọng prefers-reduced-motion (xem cuối file).
    ========================================================================= */
 
-/* Nền trang: các quầng sáng dịu, cố định (fixed) — không ảnh hưởng CUỘN */
+/* Nền trang: hai quầng sáng cùng sắc xanh, cố định (fixed) — không ảnh hưởng CUỘN.
+   Không dùng tím/emerald: mỗi màu chỉ một 의미, nền chỉ một sắc độ. */
 body::before {
   content: "";
   position: fixed;
@@ -236,10 +276,35 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(52rem 32rem at 8% -6%, rgba(37, 99, 235, 0.13), transparent 62%),
-    radial-gradient(46rem 30rem at 100% 0%, rgba(124, 58, 237, 0.11), transparent 60%),
-    radial-gradient(40rem 28rem at 62% 108%, rgba(16, 185, 129, 0.09), transparent 62%),
+    radial-gradient(52rem 32rem at 8% -6%, rgba(42, 92, 201, 0.12), transparent 62%),
+    radial-gradient(44rem 30rem at 100% 2%, rgba(31, 68, 150, 0.1), transparent 60%),
+    radial-gradient(40rem 28rem at 68% 108%, rgba(42, 92, 201, 0.07), transparent 62%),
     var(--color-canvas);
+}
+
+/* Lớp nhiễu (grain) phủ toàn khung — vỡ sự "phẳng số" của nền, luôn nằm sau nội dung */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.28'/%3E%3C/svg%3E");
+}
+
+/* Grain riêng cho khối tối / panel đặc (hero, banner): lớp phủ nhẹ PHÍA TRÊN nền,
+   PHÍA DƯỚI nội dung (nội dung cần z-index > 0 để không bị nhiễu đè lên chữ). */
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0.3;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
 }
 
 /* Chữ gradient — dùng cho tiêu đề hero / vài điểm nhấn, luôn kèm nền tương phản */
@@ -273,7 +338,7 @@ body::before {
   background-image: var(--gradient-ink);
 }
 .bg-grad-purple {
-  background-image: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+  background-image: linear-gradient(135deg, #7d5ce0 0%, #6535c9 100%);
 }
 
 /* Bề mặt kính: mờ + viền sáng + bóng nhẹ (glassmorphism) */

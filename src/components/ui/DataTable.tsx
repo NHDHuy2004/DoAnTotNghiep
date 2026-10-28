@@ -91,7 +91,7 @@ export function DataTable<T>({
                   scope="col"
                   aria-sort={ariaSort}
                   className={cn(
-                    "px-3 py-2.5 text-[11px] font-semibold tracking-wide text-ink-3 uppercase",
+                    "px-3 py-2.5 text-[11px] font-semibold tracking-[0.02em] text-ink-3",
                     maxHeight && "sticky top-0 z-10 bg-brand-soft",
                     col.align === "right" && "text-right",
                     col.align === "center" && "text-center",

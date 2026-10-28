@@ -89,7 +89,7 @@ export function Tabs({
               "relative inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-all duration-200",
               "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand",
               active
-                ? "bg-grad-brand-soft font-semibold text-brand shadow-[inset_0_0_0_1px_rgba(37,99,235,0.18)]"
+                ? "bg-grad-brand-soft font-semibold text-brand shadow-[inset_0_0_0_1px_rgba(42,92,201,0.18)]"
                 : "text-ink-2 hover:bg-white/70 hover:text-ink",
             )}
           >

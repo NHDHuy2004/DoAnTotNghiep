@@ -6,14 +6,17 @@ import { Button, Select } from "@/components/ui/Controls";
 import { Card, SectionLabel } from "@/components/ui/Card";
 import { DataTable, Pagination, type Column } from "@/components/ui/DataTable";
 import { Dialog } from "@/components/ui/Dialog";
-import { StatusBadge } from "@/components/ui/Badge";
+import { Badge, StatusBadge, type BadgeVariant } from "@/components/ui/Badge";
 import { MetricTooltip } from "@/components/ui/MetricTooltip";
 import { EmptyState, ErrorState, TableSkeleton } from "@/components/ui/States";
+import { InlineAlert } from "@/components/ui/Toast";
 import { FilterBar } from "@/components/ui/FilterBar";
+import { MetaItem } from "@/components/ui/Meta";
 import { listExecutions } from "@/lib/services/executionHistoryService";
 import { useApp } from "@/lib/context/AppContext";
 import type { ExecutionSession, PhaseKey, PhaseStatus } from "@/lib/types";
 import { fmt, fmtDateTime, fmtDuration } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { History as HistoryIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -22,6 +25,15 @@ const PHASE_LABEL: Record<PhaseKey, string> = {
   construction: "Xây dựng",
   restructure: "Tái cấu trúc",
   expansion: "Mở rộng",
+};
+
+/** Trạng thái pha → biến thể badge (ngữ nghĩa: green = xong, amber = đang chạy…). */
+const PHASE_VARIANT: Record<PhaseStatus, BadgeVariant> = {
+  pending: "gray",
+  running: "amber",
+  done: "green",
+  error: "red",
+  stopped: "gray",
 };
 
 function PhaseDot({ status }: { status: PhaseStatus }) {
@@ -33,7 +45,15 @@ function PhaseDot({ status }: { status: PhaseStatus }) {
     stopped: { cls: "bg-ink-3", label: "đã dừng" },
   };
   const c = map[status] ?? { cls: "bg-surface-3", label: String(status) };
-  return <span className={c.cls} title={c.label} aria-label={c.label} />;
+  // Chấm phải có kích thước + hình tròn (trước đây chỉ có class màu → co về 0px).
+  return (
+    <span
+      className={cn("inline-block size-2 shrink-0 rounded-full ring-1 ring-black/5", c.cls)}
+      title={c.label}
+      aria-label={c.label}
+      role="img"
+    />
+  );
 }
 
 export default function HistoryPage() {
@@ -145,11 +165,10 @@ export default function HistoryPage() {
       <DemoBanner source={list.source ?? null} />
 
       {demoMode && (
-        <p className="mb-4 rounded-card border border-warning-line bg-warning-soft/60 px-3.5 py-2.5 text-xs leading-relaxed text-warning">
-          Ở chế độ DEMO, lịch sử chỉ được giữ trong phiên làm việc hiện tại của trình duyệt (không
-          lưu bền vững). Khi backend hỗ trợ <code>GET /executions</code>, dữ liệu sẽ được lấy từ
-          đó.
-        </p>
+        <InlineAlert kind="warning" title="Dữ liệu DEMO chỉ giữ trong phiên trình duyệt">
+          Lịch sử không được lưu bền vững ở chế độ DEMO. Khi backend hỗ trợ{" "}
+          <code>GET /executions</code>, dữ liệu sẽ được lấy từ đó.
+        </InlineAlert>
       )}
 
       <Card>
@@ -164,7 +183,7 @@ export default function HistoryPage() {
               setPage(1);
               setStatus(e.target.value);
             }}
-            className="w-40"
+            className="w-full sm:w-40"
             name="status"
           >
             <option value="all">Tất cả</option>
@@ -235,44 +254,46 @@ export default function HistoryPage() {
         {detail && (
           <div className="space-y-4">
             <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
-              <DetailItem label="Trạng thái">
+              <MetaItem label="Trạng thái">
                 <StatusBadge status={detail.status} withDot />
-              </DetailItem>
-              <DetailItem label="Số HAEI" mono>
+              </MetaItem>
+              <MetaItem label="Số HAEI" mono>
                 {detail.haeiCount ?? "—"}
-              </DetailItem>
-              <DetailItem label="Thời gian xử lý" mono>
+              </MetaItem>
+              <MetaItem label="Thời gian xử lý" mono>
                 {fmtDuration(detail.executionTimeMs)}
-              </DetailItem>
-              <DetailItem label="Bắt đầu">{fmtDateTime(detail.startedAt)}</DetailItem>
-              <DetailItem label="Kết thúc">{fmtDateTime(detail.finishedAt)}</DetailItem>
-              <DetailItem label="Ltid" mono>
+              </MetaItem>
+              <MetaItem label="Bắt đầu">{fmtDateTime(detail.startedAt)}</MetaItem>
+              <MetaItem label="Kết thúc">{fmtDateTime(detail.finishedAt)}</MetaItem>
+              <MetaItem label="Ltid" mono>
                 {detail.ltid}
-              </DetailItem>
+              </MetaItem>
             </dl>
 
             {detail.error && (
-              <p className="rounded-card border border-danger-line bg-danger-soft/60 px-3.5 py-2.5 text-xs leading-relaxed text-danger">
-                Lỗi phiên: {detail.error}
-              </p>
+              <InlineAlert kind="error" title="Phiên thất bại">
+                {detail.error}
+              </InlineAlert>
             )}
 
-            <div className="rounded-card border border-line bg-surface-2/60 p-4">
+            <div className="rounded-lg border border-line bg-surface-2/60 p-4">
               <SectionLabel>Trạng thái 3 pha</SectionLabel>
               <ul className="flex flex-wrap gap-2">
                 {(Object.keys(PHASE_LABEL) as PhaseKey[]).map((k) => (
-                  <li key={k} className="flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs">
-                    <PhaseDot status={detail.phases[k]} />
-                    <span className="text-ink-2">{PHASE_LABEL[k]}</span>
+                  <li key={k}>
+                    <Badge variant={PHASE_VARIANT[detail.phases[k]] ?? "gray"}>
+                      <PhaseDot status={detail.phases[k]} />
+                      {PHASE_LABEL[k]}
+                    </Badge>
                   </li>
                 ))}
               </ul>
             </div>
 
-            <div className="rounded-card border border-line bg-surface-2/60 p-4">
+            <div className="rounded-lg border border-line bg-surface-2/60 p-4">
               <SectionLabel>Cấu hình của phiên</SectionLabel>
               <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                <DetailItem
+                <MetaItem
                   label={
                     <span className="inline-flex items-center gap-1">
                       f <MetricTooltip metricKey="f" term="Hệ số suy giảm f" />
@@ -281,8 +302,8 @@ export default function HistoryPage() {
                   mono
                 >
                   {fmt(detail.config.f, 2)}
-                </DetailItem>
-                <DetailItem
+                </MetaItem>
+                <MetaItem
                   label={
                     <span className="inline-flex items-center gap-1">
                       minae <MetricTooltip metricKey="minae" term="Ngưỡng minae" />
@@ -291,7 +312,7 @@ export default function HistoryPage() {
                   mono
                 >
                   {fmt(detail.config.minae, 3)}
-                </DetailItem>
+                </MetaItem>
                 <div className="col-span-2">
                   <dt className="text-[11px] font-medium text-ink-3">investmentTable</dt>
                   <dd className="mt-0.5 font-mono text-xs leading-relaxed break-all text-ink-2">
@@ -309,19 +330,3 @@ export default function HistoryPage() {
   );
 }
 
-function DetailItem({
-  label,
-  children,
-  mono,
-}: {
-  label: string | React.ReactNode;
-  children: React.ReactNode;
-  mono?: boolean;
-}) {
-  return (
-    <div>
-      <dt className="text-[11px] font-medium text-ink-3">{label}</dt>
-      <dd className={`mt-0.5 text-ink ${mono ? "font-mono tabular-nums" : ""}`}>{children}</dd>
-    </div>
-  );
-}

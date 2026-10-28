@@ -71,7 +71,7 @@ export function Dialog({
   if (!open) return null;
   return (
     <div
-      className="anim-fade fixed inset-0 z-[70] flex items-end justify-center bg-slate-900/45 p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
+      className="anim-fade fixed inset-0 z-[var(--z-modal)] flex items-end justify-center bg-ink/45 p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
@@ -128,7 +128,7 @@ export function Drawer({
 
   if (!open) return null;
   return (
-    <div className="anim-fade fixed inset-0 z-[70] bg-slate-900/40 backdrop-blur-[2px]" onClick={onClose}>
+    <div className="anim-fade fixed inset-0 z-[var(--z-modal)] bg-ink/40 backdrop-blur-[2px]" onClick={onClose}>
       <div
         ref={panelRef}
         role="dialog"

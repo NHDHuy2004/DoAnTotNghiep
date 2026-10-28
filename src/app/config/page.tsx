@@ -220,7 +220,7 @@ export default function ConfigPage() {
   const requiredCount = items.filter((it) => it.inv > 0).length;
 
   return (
-    <div>
+    <div className="space-y-4">
       <PageHeader
         title="Cấu hình thuật toán"
         description="Thiết lập tham số HAEIM_Damped trước khi chạy: hệ số suy giảm f, ngưỡng minae và bảng chi phí đầu tư."
@@ -239,7 +239,7 @@ export default function ConfigPage() {
       <DemoBanner source={demoMode ? "demo" : null} />
 
       {errors.length > 0 && (
-        <div className="mb-4">
+        <div>
           <InlineAlert kind="error" title="Cấu hình chưa hợp lệ">
             <ul className="mt-1 list-inside list-disc space-y-0.5">
               {errors.map((e, i) => (
@@ -250,16 +250,16 @@ export default function ConfigPage() {
         </div>
       )}
 
-      <div className="stagger grid gap-4 lg:grid-cols-2">
+      {/* Hai khối không đều nhau: tham số hẹp, bảng chi phí rộng (tránh hai cột y hệt nhau) */}
+      <div className="stagger grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
         {/* Tham số bắt buộc */}
         <Card>
           <CardHeader
             title="Tham số bắt buộc"
             description="Hai tham số chi phối toàn bộ thuật toán suy giảm."
             icon={<span className="text-[13px] font-bold">f</span>}
-            actions={<Badge variant="blue">Bắt buộc</Badge>}
           />
-          <CardBody className="space-y-5">
+          <CardBody className="space-y-4">
             <div className="flex items-start gap-1.5">
               <div className="w-full max-w-xs">
                 <Input
@@ -347,7 +347,7 @@ export default function ConfigPage() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[420px] text-sm">
               <thead>
-                <tr className="border-b border-line bg-surface-2 text-left text-[11px] tracking-wide text-ink-3 uppercase">
+                <tr className="border-b border-line bg-surface-2 text-left text-[11px] tracking-[0.01em] text-ink-3">
                   <th className="px-4 py-2.5 font-semibold">Mục</th>
                   <th className="px-4 py-2.5 text-right font-semibold">cu(i)</th>
                   <th className="px-4 py-2.5 text-right font-semibold">
@@ -435,7 +435,7 @@ export default function ConfigPage() {
               </tbody>
             </table>
           </div>
-          <div className="space-y-2 border-t border-line px-4 py-3">
+          <div className="space-y-2 border-t border-line bg-surface-2/60 px-4 py-3">
             {nameConflict && (
               <InlineAlert kind="warning">{nameConflict}</InlineAlert>
             )}
@@ -465,7 +465,7 @@ export default function ConfigPage() {
       </div>
 
       {/* Chạy thuật toán — hành động chính */}
-      <Card className="mt-4 border-brand-line">
+      <Card className="border-brand-line">
         <CardBody className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <p className="flex items-center gap-2 text-sm font-semibold text-ink">

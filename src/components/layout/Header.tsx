@@ -48,7 +48,7 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
           : "Đang kiểm tra…";
 
   return (
-    <header className="glass-bar sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-white/60 px-3 sm:px-5">
+    <header className="glass-bar sticky top-0 z-[var(--z-sticky)] flex h-14 items-center gap-3 border-b border-white/60 px-3 sm:px-5">
       <span
         aria-hidden
         className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-grad-brand opacity-40"
@@ -159,7 +159,7 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
             <div
               role="dialog"
               aria-label="Trạng thái kết nối backend"
-              className="anim-pop glass-strong absolute right-0 top-full z-40 mt-2 w-[300px] rounded-xl p-3.5"
+              className="anim-pop glass-strong absolute right-0 top-full z-[var(--z-rail)] mt-2 w-[300px] rounded-xl p-3.5"
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-semibold text-ink">Kết nối backend</p>

@@ -37,6 +37,9 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    // Thư mục skill (prompt/guide kèm dự án) — không thuộc mã ứng dụng,
+    // chứa file .ts mẫu dẫn tới báo lỗi kiểu giả khi chạy `tsc --noEmit`.
+    "skills"
   ]
 }

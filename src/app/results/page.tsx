@@ -11,6 +11,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { ColumnHeader, MetricTooltip } from "@/components/ui/MetricTooltip";
 import { EmptyState, ErrorState, TableSkeleton } from "@/components/ui/States";
 import { FilterBar } from "@/components/ui/FilterBar";
+import { MetaItem } from "@/components/ui/Meta";
 import { InlineAlert, useToast } from "@/components/ui/Toast";
 import { exportResultsCsv, listResults } from "@/lib/services/resultService";
 import { getDaeNode } from "@/lib/services/daeListService";
@@ -195,7 +196,7 @@ export default function ResultsPage() {
       <DemoBanner source={list.source ?? null} />
 
       {total > 0 && (
-        <div className="stagger grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="stagger grid gap-3 sm:grid-cols-2 xl:grid-cols-[1.4fr_1fr_1fr]">
           <StatCard
             label="Tổng kết quả"
             value={total.toLocaleString("vi-VN")}
@@ -205,13 +206,13 @@ export default function ResultsPage() {
           <StatCard
             label="Vừa đạt HAEI vừa còn mở rộng"
             value={haeiCount.toLocaleString("vi-VN")}
-            hint="Đếm trong 25 dòng của trang hiện tại"
+            hint={`Trong tối đa ${pageSize} dòng của trang hiện tại`}
             accent="green"
           />
           <StatCard
             label="Sdae cao nhất"
             value={bestSdae !== undefined ? fmt(bestSdae) : "—"}
-            hint="Trong 25 dòng của trang hiện tại"
+            hint={`Trong tối đa ${pageSize} dòng của trang hiện tại`}
           />
         </div>
       )}
@@ -247,7 +248,7 @@ export default function ResultsPage() {
               setPage(1);
               setSearch(searchInput);
             }}
-            className="w-56"
+            className="w-full sm:w-56"
           />
           <Select
             label="Độ dài"
@@ -256,7 +257,7 @@ export default function ResultsPage() {
               setPage(1);
               setSize(e.target.value === "all" ? "all" : Number(e.target.value));
             }}
-            className="w-28"
+            className="w-full sm:w-28"
             name="size"
           >
             <option value="all">Tất cả</option>
@@ -271,7 +272,7 @@ export default function ResultsPage() {
               setPage(1);
               setStatus(e.target.value as typeof status);
             }}
-            className="w-36"
+            className="w-full sm:w-36"
             name="status"
           >
             <option value="all">Tất cả</option>
@@ -282,7 +283,7 @@ export default function ResultsPage() {
             label="Sắp xếp theo"
             value={sort.key}
             onChange={(e) => setSort((s) => ({ ...s, key: e.target.value }))}
-            className="w-40"
+            className="w-full sm:w-40"
             name="sort"
           >
             <option value="sdae">Sdae</option>
@@ -293,7 +294,7 @@ export default function ResultsPage() {
             label="Thứ tự"
             value={sort.order}
             onChange={(e) => setSort((s) => ({ ...s, order: e.target.value as "asc" | "desc" }))}
-            className="w-28"
+            className="w-full sm:w-28"
             name="order"
           >
             <option value="desc">Giảm dần</option>
@@ -396,10 +397,10 @@ function ResultDetailDialog({ result, onClose }: { result: HaeiResult | null; on
           </div>
 
           <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <MetricCell label="Sdae" value={fmt(result.sdae)} metricKey="sdae" emphasized />
-            <MetricCell label="minae" value={fmt(result.minae, 3)} metricKey="minae" />
-            <MetricCell label="Số mục" value={String(result.size)} />
-            <MetricCell label="Giao dịch chứa" value={String(result.entryCount)} />
+            <MetaItem variant="boxed" label="Sdae" value={fmt(result.sdae)} metricKey="sdae" emphasized />
+            <MetaItem variant="boxed" label="minae" value={fmt(result.minae, 3)} metricKey="minae" />
+            <MetaItem variant="boxed" label="Số mục" value={String(result.size)} />
+            <MetaItem variant="boxed" label="Giao dịch chứa" value={String(result.entryCount)} />
           </dl>
 
           {result.note && (
@@ -423,18 +424,18 @@ function ResultDetailDialog({ result, onClose }: { result: HaeiResult | null; on
               {dae.data && (
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-line text-left text-xs text-ink-3">
-                      <th className="py-1.5">tid</th>
-                      <th className="py-1.5 text-right">u</th>
-                      <th className="py-1.5 text-right">ae/dae</th>
+                    <tr className="border-b border-line text-left text-[11px] font-semibold tracking-[0.02em] text-ink-3">
+                      <th className="px-2 py-2">tid</th>
+                      <th className="px-2 py-2 text-right">u</th>
+                      <th className="px-2 py-2 text-right">ae/dae</th>
                     </tr>
                   </thead>
                   <tbody>
                     {dae.data.entries.map((e) => (
                       <tr key={e.tid} className="border-b border-line last:border-b-0">
-                        <td className="py-1.5 font-mono">T{e.tid}</td>
-                        <td className="py-1.5 text-right tabular-nums">{e.u}</td>
-                        <td className="py-1.5 text-right font-mono tabular-nums">{fmt(e.value)}</td>
+                        <td className="px-2 py-1.5 font-mono">T{e.tid}</td>
+                        <td className="px-2 py-1.5 text-right tabular-nums">{e.u}</td>
+                        <td className="px-2 py-1.5 text-right font-mono tabular-nums">{fmt(e.value)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -454,28 +455,3 @@ function ResultDetailDialog({ result, onClose }: { result: HaeiResult | null; on
   );
 }
 
-function MetricCell({
-  label,
-  value,
-  metricKey,
-  emphasized,
-}: {
-  label: string;
-  value: string;
-  metricKey?: "sdae" | "minae";
-  emphasized?: boolean;
-}) {
-  return (
-    <div className="rounded-xl border border-line bg-surface-2/60 px-3.5 py-3">
-      <dt className="inline-flex items-center gap-1 text-[11px] font-medium text-ink-3">
-        {label}
-        {metricKey && <MetricTooltip metricKey={metricKey} term={label} />}
-      </dt>
-      <dd
-        className={`mt-1 font-semibold tabular-nums text-ink ${emphasized ? "text-xl text-brand" : "text-base"}`}
-      >
-        {value}
-      </dd>
-    </div>
-  );
-}

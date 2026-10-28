@@ -15,8 +15,8 @@ type Size = "sm" | "md" | "lg";
 
 const variantMap: Record<Variant, string> = {
   primary:
-    "sheen bg-grad-brand text-white shadow-[0_8px_18px_-10px_rgba(37,99,235,0.95)] " +
-    "hover:shadow-[0_12px_24px_-10px_rgba(37,99,235,0.95)] hover:brightness-[1.06] active:brightness-95 " +
+    "sheen bg-grad-brand text-white shadow-[0_8px_18px_-10px_rgba(42,92,201,0.95)] " +
+    "hover:shadow-[0_12px_24px_-10px_rgba(42,92,201,0.95)] hover:brightness-[1.06] active:brightness-95 " +
     "disabled:bg-brand-line disabled:text-white/80 disabled:shadow-none disabled:hover:brightness-100",
   secondary:
     "border border-line-2 bg-white/80 text-ink-2 backdrop-blur-sm hover:border-brand-line hover:bg-white hover:text-ink hover:shadow-[0_8px_18px_-14px_rgba(15,23,41,0.7)] " +
@@ -56,7 +56,7 @@ export function Button({
       className={cn(
         "inline-flex items-center justify-center font-medium whitespace-nowrap transition-all duration-200",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
-        "disabled:cursor-not-allowed",
+        "active:scale-[0.985] disabled:cursor-not-allowed disabled:active:scale-100",
         variantMap[variant],
         sizeMap[size],
         className,
@@ -74,7 +74,8 @@ export function Button({
 const fieldBase =
   "w-full rounded-lg border bg-surface text-sm text-ink placeholder:text-ink-3 " +
   "transition-colors focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand " +
-  "disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-ink-3";
+  "hover:border-brand/40 disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-ink-3 " +
+  "disabled:hover:border-line-2";
 
 const fieldState = (error?: string) =>
   error ? "border-danger focus:border-danger focus:ring-danger/15" : "border-line-2";
