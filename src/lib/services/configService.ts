@@ -1,9 +1,46 @@
-import { apiGet, apiPost, apiPut } from "@/lib/api/client";
+import { apiGet, apiPut } from "@/lib/api/client";
 import { ENDPOINTS, isDemoMode } from "@/lib/api/endpoints";
 import { DEMO_CONFIG } from "@/lib/demo/demoData";
 import type { AlgorithmConfig, ServiceResult } from "@/lib/types";
 
 const STORAGE_KEY = "haeim.config";
+
+/**
+ * Response `GET/PUT /api/config` của backend (xem `app/contract.py`):
+ * bảng EU/CU/INV + tham số hiệu lực `f`/`minae` + giá trị mặc định.
+ */
+interface WireConfig {
+  eu: Record<string, number>;
+  cu: Record<string, number>;
+  inv: Record<string, number>;
+  f: number;
+  minae: number;
+  default_f: number;
+  default_minae: number;
+  ltid: number;
+}
+
+/** Wire -> kiểu UI (`AlgorithmConfig` — mọi nơi đọc `investmentTable[...]`). */
+function fromWire(w: WireConfig): AlgorithmConfig {
+  return {
+    f: w.f,
+    minae: w.minae,
+    investmentTable: w.inv ?? {},
+    unitCostTable: w.cu ?? {},
+    runMode: "full",
+  };
+}
+
+/** Kiểu UI -> body `PUT /api/config` (backend bỏ qua `runMode`). */
+function toWireBody(cfg: AlgorithmConfig): Record<string, unknown> {
+  return {
+    f: cfg.f,
+    minae: cfg.minae,
+    investmentTable: cfg.investmentTable,
+    unitCostTable: cfg.unitCostTable,
+    runMode: cfg.runMode,
+  };
+}
 
 /** Validate cấu hình trước khi lưu/chạy. Trả về lỗi cụ thể hoặc null. */
 export function validateConfig(cfg: AlgorithmConfig): string[] {
@@ -52,8 +89,8 @@ export async function getConfig(signal?: AbortSignal): Promise<ServiceResult<Alg
     const saved = readLocal();
     return { source: "demo", data: normalizeConfig(saved ?? structuredClone(DEMO_CONFIG)) };
   }
-  const data = await apiGet<AlgorithmConfig>(ENDPOINTS.config, { signal });
-  return { source: "api", data: normalizeConfig(data) };
+  const data = await apiGet<WireConfig>(ENDPOINTS.config, { signal });
+  return { source: "api", data: normalizeConfig(fromWire(data)) };
 }
 
 export async function saveConfig(cfg: AlgorithmConfig): Promise<ServiceResult<AlgorithmConfig>> {
@@ -62,8 +99,8 @@ export async function saveConfig(cfg: AlgorithmConfig): Promise<ServiceResult<Al
     writeLocal(saved);
     return { source: "demo", data: saved };
   }
-  const data = await apiPut<AlgorithmConfig>(ENDPOINTS.config, cfg);
-  return { source: "api", data: normalizeConfig(data) };
+  const data = await apiPut<WireConfig>(ENDPOINTS.config, toWireBody(cfg));
+  return { source: "api", data: normalizeConfig(fromWire(data)) };
 }
 
 export async function resetConfig(): Promise<ServiceResult<AlgorithmConfig>> {
@@ -71,8 +108,9 @@ export async function resetConfig(): Promise<ServiceResult<AlgorithmConfig>> {
     clearLocal();
     return { source: "demo", data: normalizeConfig(structuredClone(DEMO_CONFIG)) };
   }
-  const data = await apiPost<AlgorithmConfig>(ENDPOINTS.configReset);
-  return { source: "api", data: normalizeConfig(data) };
+  // Backend: PUT /api/config {reset:true} -> khôi phục f/minae + inv/cu mặc định
+  const data = await apiPut<WireConfig>(ENDPOINTS.config, { reset: true });
+  return { source: "api", data: normalizeConfig(fromWire(data)) };
 }
 
 /* Demo mode: lưu trong localStorage của trình duyệt. */

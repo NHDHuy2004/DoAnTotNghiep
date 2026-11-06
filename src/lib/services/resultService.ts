@@ -1,6 +1,7 @@
 import { apiGet } from "@/lib/api/client";
-import { ENDPOINTS, getApiBaseUrl, isDemoMode } from "@/lib/api/endpoints";
+import { ENDPOINTS, isDemoMode } from "@/lib/api/endpoints";
 import { DEMO_RESULTS } from "@/lib/demo/demoData";
+import { fetchDaeNodes } from "@/lib/services/daeListService";
 import { ApiError } from "@/lib/types";
 import type { HaeiResult, Paginated, ServiceResult } from "@/lib/types";
 
@@ -14,9 +15,13 @@ export interface ResultQuery {
   pageSize?: number;
 }
 
-function filterDemo(q: ResultQuery): HaeiResult[] {
+/**
+ * Lọc + sắp xếp + phân trang (dùng chung cho demo lẫn API).
+ * `status` phân biệt HAEI bằng cờ `isHaei` đã có trên từng hàng.
+ */
+function applyQuery(q: ResultQuery, source: HaeiResult[]): Paginated<HaeiResult> {
   const search = (q.search ?? "").trim().toLowerCase().replace(/[{}]/g, "");
-  let list = DEMO_RESULTS.filter((r) => {
+  let list = source.filter((r) => {
     if (q.size !== "all" && q.size !== undefined && r.size !== q.size) return false;
     if (q.status === "haei" && !r.isHaei) return false;
     if (q.status === "not" && r.isHaei) return false;
@@ -38,7 +43,43 @@ function filterDemo(q: ResultQuery): HaeiResult[] {
     }
     return q.order === "desc" ? -c : c;
   });
-  return list;
+  const page = q.page ?? 1;
+  const pageSize = q.pageSize ?? 10;
+  const start = (page - 1) * pageSize;
+  return {
+    items: list.slice(start, start + pageSize),
+    total: list.length,
+    page,
+    pageSize,
+  };
+}
+
+/**
+ * API mode: dựng danh sách kết quả từ DAE-List thật (`GET /api/dae-lists`).
+ *
+ * - `isHaei` = Sdae ≥ minae (định nghĩa HAEI);
+ * - `expandable` = STDAEUB ≥ minae (còn cơ hội mở rộng);
+ * - `entryCount` = số entry của node;
+ * - minae lấy từ `GET /api/config` (tham số hiệu lực backend).
+ */
+async function fetchApiResults(signal?: AbortSignal): Promise<HaeiResult[]> {
+  const [nodes, cfg] = await Promise.all([
+    fetchDaeNodes({ signal }),
+    apiGet<{ minae: number }>(ENDPOINTS.config, { signal }),
+  ]);
+  const minae = cfg.minae;
+  return nodes.map((n) => {
+    const isHaei = n.sdae >= minae;
+    return {
+      itemset: n.itemset,
+      size: n.itemset.length,
+      sdae: n.sdae,
+      minae,
+      isHaei,
+      expandable: n.stdaeub >= minae,
+      entryCount: n.entryCount,
+    };
+  });
 }
 
 export async function listResults(
@@ -46,91 +87,31 @@ export async function listResults(
   signal?: AbortSignal,
 ): Promise<ServiceResult<Paginated<HaeiResult>>> {
   if (isDemoMode()) {
-    const filtered = filterDemo(q);
-    const page = q.page ?? 1;
-    const pageSize = q.pageSize ?? 10;
-    const start = (page - 1) * pageSize;
-    return {
-      source: "demo",
-      data: {
-        items: filtered.slice(start, start + pageSize),
-        total: filtered.length,
-        page,
-        pageSize,
-      },
-    };
+    return { source: "demo", data: applyQuery(q, DEMO_RESULTS) };
   }
-  const params = new URLSearchParams();
-  if (q.search) params.set("search", q.search);
-  if (q.size !== "all" && q.size !== undefined) params.set("size", String(q.size));
-  if (q.status && q.status !== "all") params.set("status", q.status);
-  if (q.sort) params.set("sort", q.sort);
-  if (q.order) params.set("order", q.order);
-  if (q.page) params.set("page", String(q.page));
-  if (q.pageSize) params.set("pageSize", String(q.pageSize));
-  const data = await apiGet<Paginated<HaeiResult>>(
-    `${ENDPOINTS.results}?${params.toString()}`,
-    { signal },
-  );
-  return { source: "api", data };
+  const rows = await fetchApiResults(signal);
+  return { source: "api", data: applyQuery(q, rows) };
 }
 
 export async function getResultDetail(
   itemset: string[],
   signal?: AbortSignal,
 ): Promise<ServiceResult<HaeiResult>> {
+  const key = itemset.join(",");
   if (isDemoMode()) {
-    const key = itemset.join(",");
     const r = DEMO_RESULTS.find((x) => x.itemset.join(",") === key);
     if (!r) throw new Error(`Không tìm thấy kết quả {${key}} trong dữ liệu demo.`);
     return { source: "demo", data: r };
   }
-  const data = await apiGet<HaeiResult>(ENDPOINTS.result(itemset), { signal });
-  return { source: "api", data };
+  const rows = await fetchApiResults(signal);
+  const r = rows.find((x) => x.itemset.join(",") === key);
+  if (!r) throw new ApiError(`Không tìm thấy kết quả {${key}}.`, 404, ENDPOINTS.results);
+  return { source: "api", data: r };
 }
 
-/** Tải CSV: backend thật → GET /results/export; demo → tạo CSV từ dữ liệu demo. */
-export async function exportResultsCsv(): Promise<{ filename: string; content: string }> {
-  if (!isDemoMode()) {
-    // Phải nối base URL: path của ENDPOINTS là tương đối (apiFetch cũng làm vậy)
-    const baseUrl = getApiBaseUrl();
-    if (!baseUrl) {
-      throw new ApiError(
-        "Chưa cấu hình backend (NEXT_PUBLIC_API_BASE_URL). Hãy bật DEMO mode hoặc nhập URL backend ở trang Cài đặt.",
-        undefined,
-        ENDPOINTS.resultsExport,
-      );
-    }
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 30000);
-    try {
-      const res = await fetch(`${baseUrl}${ENDPOINTS.resultsExport}?format=csv`, {
-        headers: { Accept: "text/csv" },
-        signal: controller.signal,
-      });
-      if (!res.ok) {
-        throw new ApiError(
-          `Backend trả về lỗi ${res.status} khi xuất CSV.`,
-          res.status,
-          ENDPOINTS.resultsExport,
-        );
-      }
-      const disposition = res.headers.get("content-disposition") ?? "";
-      const match = /filename="?([^";]+)"?/i.exec(disposition);
-      return { filename: match?.[1]?.trim() || "haei-results.csv", content: await res.text() };
-    } catch (err) {
-      if (err instanceof ApiError) throw err;
-      const msg =
-        err instanceof DOMException && err.name === "AbortError"
-          ? "Yêu cầu xuất CSV đã bị hủy (timeout)."
-          : `Không thể kết nối tới backend: ${err instanceof Error ? err.message : String(err)}`;
-      throw new ApiError(msg, undefined, ENDPOINTS.resultsExport);
-    } finally {
-      clearTimeout(timer);
-    }
-  }
+function toCsv(rows: HaeiResult[]): string {
   const header = "itemset,size,sdae,minae,isHaei,expandable,entryCount";
-  const rows = DEMO_RESULTS.map((r) =>
+  const body = rows.map((r) =>
     [
       `{${r.itemset.join(",")}}`,
       r.size,
@@ -141,5 +122,22 @@ export async function exportResultsCsv(): Promise<{ filename: string; content: s
       r.entryCount,
     ].join(","),
   );
-  return { filename: "haei-results-demo.csv", content: [header, ...rows].join("\n") };
+  return [header, ...body].join("\n");
+}
+
+/**
+ * Tải CSV kết quả.
+ *
+ * Backend không có endpoint `/results/export` riêng cho hợp đồng này →
+ * FE tự dựng CSV từ dữ liệu đã chuẩn hóa (cả demo lẫn API đều client-side).
+ */
+export async function exportResultsCsv(): Promise<{ filename: string; content: string }> {
+  const rows = isDemoMode()
+    ? DEMO_RESULTS
+    : await fetchApiResults();
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+  return {
+    filename: `haei-results-${stamp}.csv`,
+    content: toCsv(rows),
+  };
 }

@@ -87,8 +87,52 @@ export async function createTransaction(
     // DEMO: gán tid mới trong phiên làm việc, không lưu bền vững.
     return { source: "demo", data: createTransactionSync(input) };
   }
-  const data = await apiPost<Transaction>(ENDPOINTS.transactions, input);
+  // Backend yêu cầu: mọi item phải có trong bảng EU/INV (POST /api/items)
+  // và body dùng tên `qty` (không phải `quantity`).
+  await ensureItemsRegistered(input);
+  const res = await apiPost<{ tid: number }>(ENDPOINTS.transactions, {
+    items: input.items.map((it) => ({ item: it.item, qty: it.quantity })),
+  });
+  // Response POST chỉ có tid/ltid → lấy bản giao dịch đầy đủ (items/tu)
+  const data = await apiGet<Transaction>(ENDPOINTS.transaction(res.tid));
   return { source: "api", data };
+}
+
+/** Bảng chi phí hiện tại (luôn tải mới — tránh cache cũ sau khi backend restart). */
+async function fetchCostTables(): Promise<{
+  eu: Record<string, number>;
+  inv: Record<string, number>;
+  cu: Record<string, number>;
+}> {
+  const w = await apiGet<{
+    eu: Record<string, number>;
+    inv: Record<string, number>;
+    cu: Record<string, number>;
+  }>(ENDPOINTS.config);
+  return { eu: w.eu ?? {}, inv: w.inv ?? {}, cu: w.cu ?? {} };
+}
+
+/**
+ * Đăng ký các item CHƯA có trong EU/INV của backend.
+ *
+ * - eu = utility / qty (cùng cách suy eu của Bảng 1 PDF);
+ * - inv = cu × qty theo quy ước `inv = cu × tổng qty` của backend;
+ * - item đã tồn tại → bỏ qua (backend từ chối đăng ký trùng).
+ */
+async function ensureItemsRegistered(input: TransactionInput): Promise<void> {
+  const tables = await fetchCostTables();
+  for (const it of input.items) {
+    if (it.item in tables.eu || it.item in tables.inv) continue;
+    const qty = it.quantity;
+    const eu = qty > 0 ? it.utility / qty : 0;
+    const cu = tables.cu[it.item] ?? 1;
+    await apiPost(ENDPOINTS.items, {
+      item: it.item,
+      eu: eu > 0 ? eu : 1,
+      inv: (cu > 0 ? cu : 1) * qty,
+      cu: cu > 0 ? cu : undefined,
+    });
+  }
 }
 
 export async function importTransactions(

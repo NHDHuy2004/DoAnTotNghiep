@@ -1,12 +1,30 @@
 # API Contract — HAEIM_Damped Frontend ⇄ Backend
 
-> Trạng thái: **CHƯA CÓ BACKEND**. Frontend khởi động ở DEMO mode
-> (`NEXT_PUBLIC_DEMO_MODE=true`) dùng bộ dữ liệu 8 giao dịch + các giá trị
-> minh họa trích từ tài liệu `TongHop_LuongXuLy_HAEIM_Damped.pdf`.
-> Khi backend sẵn sàng, đặt `NEXT_PUBLIC_API_BASE_URL` và tắt demo mode.
+> **Trạng thái tích hợp (backend-doan)**: backend FastAPI thật đã được nối qua
+> lớp adapter — xem bảng đối chiếu ngay dưới mục "Tổng quát". Frontend vẫn
+> hỗ trợ DEMO mode (`NEXT_PUBLIC_DEMO_MODE=true`) dùng bộ dữ liệu 8 giao dịch
+> trích từ tài liệu `TongHop_LuongXuLy_HAEIM_Damped.pdf`.
 
-Tất cả endpoint đều **chưa tồn tại** — đây là hợp đồng đề xuất để backend
-triển khai. Khi một endpoint được cung cấp, chỉ cần set env, không sửa component.
+Tài liệu dưới đây là **hợp đồng đề xuất** mà frontend đã xây dựng. Khi một
+endpoint được cung cấp, chỉ cần set env, không sửa component.
+
+## Đối chiếu với backend-doan (hiện hành)
+
+Base URL thực tế: `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api`
+(chạy `uvicorn app.main:app --port 8000` trong `backend-doan/`):
+
+| Hợp đồng | Thực tế backend | Xử lý |
+|---|---|---|
+| `GET /health` | `GET /api/health` | ✅ thẳng |
+| `GET /transactions?page&pageSize&search&status` | có (adapter `app/contract.py`) | ✅ thẳng; **không tham số** → dạng gốc `{ltid,transactions}` |
+| `POST /transactions` `{items:[{item,quantity,utility}]}` | `{items:[{item,qty}]}`, item phải có EU/INV | FE tự đăng ký item mới qua `POST /api/items` rồi gửi lại |
+| `GET/PUT /config`, `POST /config/reset` | `GET/PUT /api/config` (reset = `PUT {reset:true}`) | adapter chuẩn hoá về `AlgorithmConfig` |
+| `POST /executions` + trace/phases/logs | **không có** — chỉ `POST /api/mine` (đồng bộ) | FE chạy thật `POST /api/mine`, tự lưu phiên/log vào `localStorage` (`sessionStore`) và **suy ra trace 3 pha** từ `/transactions`, `/dae-lists`, payload mine |
+| `GET /dae-list`, `GET /results` | `GET /api/dae-lists`, `GET /api/results` | FE chuẩn hoá + lọc/sắp xếp client-side |
+| `GET /results/export?format=csv` | `GET /api/export?fmt=csv` | FE tự xuất CSV từ dữ liệu đã tải |
+
+Các endpoint `executions*` / `transactions/latest` / `results/export` /
+`config/reset` trong hợp đồng **bị bỏ** (FE không dùng nữa).
 
 ## Tổng quát
 

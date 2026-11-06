@@ -82,24 +82,25 @@ export function isDemoMode(): boolean {
   return computeDemoMode(override || ENV_API_BASE_URL, override);
 }
 
+/**
+ * Danh sách endpoint — đường dẫn TƯƠNG ĐỐI so với `NEXT_PUBLIC_API_BASE_URL`
+ * (ví dụ `http://localhost:8000/api`). Backend FastAPI trong `backend-doan`.
+ *
+ * Ghi chú tích hợp:
+ *   - `/transactions` kèm tham số phân trang -> `{items,total,page,pageSize}`;
+ *     không tham số -> dạng gốc `{ltid,transactions}` (chỉ dùng nội bộ BE).
+ *   - Session/history/log của Phiên thực thi backend KHÔNG có -> service tự
+ *     lưu tại `sessionStore` (localStorage); các endpoint executions* bỏ.
+ *   - `/results/export` bỏ -> FE tự xuất CSV từ dữ liệu đã tải.
+ */
 export const ENDPOINTS = {
   health: "/health",
   transactions: "/transactions",
   transaction: (tid: number) => `/transactions/${tid}`,
-  transactionsLatest: "/transactions/latest",
   transactionsImport: "/transactions/import",
+  items: "/items",
   config: "/config",
-  configReset: "/config/reset",
-  executions: "/executions",
-  execution: (id: string) => `/executions/${id}`,
-  executionStop: (id: string) => `/executions/${id}/stop`,
-  executionPause: (id: string) => `/executions/${id}/pause`,
-  executionResume: (id: string) => `/executions/${id}/resume`,
-  executionPhase: (id: string, phase: string) => `/executions/${id}/phases/${phase}`,
-  executionLogs: (id: string) => `/executions/${id}/logs`,
-  daeList: "/dae-list",
-  daeListNode: (itemset: string[]) => `/dae-list/${encodeURIComponent(itemset.join(","))}`,
+  mine: "/mine",
+  daeList: "/dae-lists",
   results: "/results",
-  result: (itemset: string[]) => `/results/${encodeURIComponent(itemset.join(","))}`,
-  resultsExport: "/results/export",
 } as const;

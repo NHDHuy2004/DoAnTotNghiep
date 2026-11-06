@@ -7,6 +7,30 @@ interface RequestOptions extends Omit<RequestInit, "body"> {
 }
 
 /**
+ * Đọc trường `detail` của lỗi FastAPI:
+ *   - string → dùng nguyên văn;
+ *   - mảng lỗi 422 `[{loc, msg}]` → nối các `msg`;
+ *   - object khác → JSON.stringify.
+ */
+function formatDetail(detail: unknown): string {
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    const msgs = detail
+      .map((d) =>
+        typeof d === "string"
+          ? d
+          : d && typeof d === "object" && "msg" in d
+            ? String((d as { msg: unknown }).msg)
+            : JSON.stringify(d),
+      )
+      .filter(Boolean);
+    if (msgs.length) return msgs.join("; ");
+  }
+  if (detail && typeof detail === "object") return JSON.stringify(detail);
+  return "";
+}
+
+/**
  * HTTP client dùng chung: JSON, timeout, hủy request cũ bằng AbortSignal,
  * lỗi → ApiError có message dễ hiểu cho UI.
  */
@@ -47,8 +71,12 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     if (!res.ok) {
       let detail = "";
       try {
-        const payload = (await res.json()) as { message?: string; error?: string };
-        detail = payload.message ?? payload.error ?? "";
+        const payload = (await res.json()) as {
+          message?: string;
+          error?: string;
+          detail?: unknown;
+        };
+        detail = payload.message ?? payload.error ?? formatDetail(payload.detail);
       } catch {
         // response không phải JSON → bỏ qua
       }
